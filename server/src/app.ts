@@ -3,21 +3,23 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-import { env, isProduction } from './env';
-import { errorHandler, notFoundHandler } from './middleware/errors';
-import { healthRouter } from './routes/health';
+import { env, isProduction } from './config/env';
+import { errorHandler } from './middlewares/error.middleware';
+import { notFoundHandler } from './middlewares/not-found.middleware';
+import { apiRouter } from './routes';
 
 export const createApp = (): Express => {
   const app = express();
 
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use(cors({ origin: env.WEB_ORIGIN, credentials: true }));
+  app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan(isProduction ? 'combined' : 'dev'));
 
-  app.use('/health', healthRouter);
+  app.use('/api', apiRouter);
 
+  // Order matters: unmatched routes become 404s, then everything lands in the error handler.
   app.use(notFoundHandler);
   app.use(errorHandler);
 

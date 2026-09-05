@@ -47,6 +47,9 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
+# Prisma client is generated into the source tree, so it is build output
+server/src/generated/
+
 # Optional npm cache directory
 .npm
 

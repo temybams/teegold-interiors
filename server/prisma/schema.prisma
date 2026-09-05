@@ -1,0 +1,32 @@
+// Stage 2 covers users and authentication only.
+// Catalogue, customers, quotations and invoices arrive in later stages.
+
+generator client {
+  provider = "prisma-client"
+  // Prisma 7 generates the client into the project instead of node_modules.
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  /// Always stored lowercase so sign-in is not case sensitive.
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  /// Staff are deactivated rather than deleted, so their past work keeps its author.
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}

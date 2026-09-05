@@ -1,12 +1,12 @@
 'use client';
 
-import { healthResponseSchema, type HealthResponse } from '@teegold/shared';
 import { useEffect, useState } from 'react';
 
 import { apiBaseUrl, apiFetch } from '@/lib/api';
+import { healthSchema, type Health } from '@/lib/schemas';
 
 type State =
-  { kind: 'loading' } | { kind: 'ok'; health: HealthResponse } | { kind: 'error'; message: string };
+  { kind: 'loading' } | { kind: 'ok'; health: Health } | { kind: 'error'; message: string };
 
 export const ApiStatus = () => {
   const [state, setState] = useState<State>({ kind: 'loading' });
@@ -16,8 +16,7 @@ export const ApiStatus = () => {
 
     const check = async () => {
       try {
-        const body = await apiFetch<unknown>('/health');
-        const health = healthResponseSchema.parse(body);
+        const health = healthSchema.parse(await apiFetch<unknown>('/api/health'));
 
         if (!cancelled) {
           setState({ kind: 'ok', health });
@@ -26,7 +25,7 @@ export const ApiStatus = () => {
         if (!cancelled) {
           setState({
             kind: 'error',
-            message: error instanceof Error ? error.message : 'Unable to reach the API',
+            message: error instanceof Error ? error.message : 'Unable to reach the server',
           });
         }
       }
@@ -43,8 +42,8 @@ export const ApiStatus = () => {
     <div className="rounded-card border border-hairline bg-surface p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs tracking-[0.12em] text-muted uppercase">API connection</p>
-          <p className="mt-1 font-mono text-sm text-ink">{apiBaseUrl}/health</p>
+          <p className="text-xs tracking-[0.12em] text-muted uppercase">Server connection</p>
+          <p className="mt-1 font-mono text-sm text-ink">{apiBaseUrl}/api/health</p>
         </div>
 
         {state.kind === 'loading' && (
@@ -68,22 +67,23 @@ export const ApiStatus = () => {
         <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-hairline pt-5">
           <div>
             <dt className="text-xs tracking-[0.12em] text-muted uppercase">Service</dt>
-            <dd className="mt-1 text-sm text-ink">{state.health.service}</dd>
+            <dd className="mt-1 text-sm">{state.health.service}</dd>
           </div>
           <div>
             <dt className="text-xs tracking-[0.12em] text-muted uppercase">Version</dt>
-            <dd className="tabular mt-1 text-sm text-ink">{state.health.version}</dd>
+            <dd className="tabular mt-1 text-sm">{state.health.version}</dd>
           </div>
           <div>
             <dt className="text-xs tracking-[0.12em] text-muted uppercase">Uptime</dt>
-            <dd className="tabular mt-1 text-sm text-ink">{state.health.uptimeSeconds}s</dd>
+            <dd className="tabular mt-1 text-sm">{state.health.uptimeSeconds}s</dd>
           </div>
         </dl>
       )}
 
       {state.kind === 'error' && (
         <p className="mt-4 border-t border-hairline pt-4 text-sm text-muted">
-          {state.message}. Start it with <code className="text-ink">yarn dev:api</code>.
+          {state.message}. Start it with <code className="text-ink">yarn dev</code> inside{' '}
+          <code className="text-ink">server/</code>.
         </p>
       )}
     </div>

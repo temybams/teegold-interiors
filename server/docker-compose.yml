@@ -9,8 +9,9 @@ services:
       POSTGRES_USER: teegold
       POSTGRES_PASSWORD: teegold
       POSTGRES_DB: teegold
+    # Host port 5433 keeps this out of the way of any other Postgres on 5432.
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - teegold-db-data:/var/lib/postgresql/data
     healthcheck:

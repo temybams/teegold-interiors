@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /**
- * Design tokens locked in the plan. Admin app carries the full indigo; the public
+ * Design tokens locked in the plan. The admin app carries the full indigo; the public
  * landing page uses the quieter warm-neutral set and only accents with indigo.
  */
 @theme {

@@ -5,30 +5,31 @@ quotations, invoices with measurement-driven pricing, payments and invoice shari
 
 ## Layout
 
-Client and backend are separate top-level folders, tied together by Yarn workspaces.
+Two independent projects. Each has its own `package.json`, its own `node_modules` and is
+installed, run and deployed on its own.
 
 ```
 teegold/
-├── client/   Next.js app — everything the browser runs
-├── server/   Express API, Prisma and its Postgres compose file
-├── shared/   Types, Zod schemas, money and pricing helpers used by both
-└── (root)    Yarn workspaces, ESLint, Prettier, base tsconfig
+├── client/   Next.js + TypeScript + Tailwind  (browser)
+└── server/   Express + TypeScript + Zod       (API, Prisma, Postgres)
 ```
 
-Nothing backend lives outside `server/`. `shared/` sits on its own because both sides import it —
-it exists so the browser and the API calculate a line total the same way, and the area of a blind
-is never worked out twice with two different rounding rules.
+### Inside `server/src`
 
-## Stack
+| Folder         | Holds                                                            |
+| -------------- | ---------------------------------------------------------------- |
+| `config/`      | Environment parsing and app constants                            |
+| `routes/`      | URL to handler wiring only                                       |
+| `controllers/` | Request handling for one endpoint                                |
+| `services/`    | Business logic and the only place that talks to Prisma           |
+| `validations/` | Zod schemas plus the `validate` middleware that enforces them    |
+| `middlewares/` | Cross-cutting concerns: auth, RBAC, 404s, the error handler      |
+| `utils/`       | Pure helpers — money, pricing, passwords, tokens, HTTP errors    |
+| `lib/`         | The shared Prisma client instance                                |
+| `generated/`   | Prisma client output. Generated, gitignored, never edited        |
 
-| Part     | Choice                                        |
-| -------- | --------------------------------------------- |
-| Monorepo | Yarn workspaces                               |
-| `client` | Next.js App Router, TypeScript, Tailwind CSS  |
-| `server` | Express, TypeScript, Zod                      |
-| `shared` | Types, Zod schemas, money and pricing helpers |
-| Database | PostgreSQL via Prisma (Stage 2)               |
-| Hosting  | Client on Vercel, server on Render            |
+Requests flow one way: `routes → validations → controllers → utils`. Nothing untrusted reaches a
+controller, because `validate()` rejects it at the route.
 
 ## Requirements
 
@@ -38,41 +39,94 @@ is never worked out twice with two different rounding rules.
 
 ## Getting started
 
+Two terminals, one per side.
+
 ```bash
+# terminal 1 — server
+cd server
 yarn install
+cp .env.example .env   # then fill in JWT_SECRET and the SEED_ADMIN_* values
+yarn db:up             # Postgres in Docker, on localhost:5433
+yarn db:migrate        # creates the tables
+yarn db:seed           # creates the first admin from SEED_ADMIN_*
+yarn dev               # http://localhost:4000
 
-cp server/.env.example server/.env
-cp client/.env.example client/.env.local
-
-yarn db:up   # starts Postgres on localhost:5432
-yarn dev     # server on :4000, client on :3000
+# terminal 2 — client
+cd client
+yarn install
+cp .env.example .env.local
+yarn dev               # http://localhost:3000
 ```
 
-`yarn dev` builds `shared/` first, then runs both sides together.
+Generate a secret for `JWT_SECRET` with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+The container publishes Postgres on host port **5433**, not 5432, so it cannot collide with
+another Postgres already running on this machine.
 
 ## Scripts
 
-| Script                        | What it does                         |
-| ----------------------------- | ------------------------------------ |
-| `yarn dev`                    | Shared build, then server and client |
-| `yarn dev:server`             | Backend only, watch mode             |
-| `yarn dev:client`             | Frontend only                        |
-| `yarn build`                  | Build shared, server and client      |
-| `yarn typecheck`              | TypeScript across every workspace    |
-| `yarn lint`                   | ESLint across the repo               |
-| `yarn format`                 | Prettier write                       |
-| `yarn db:up` / `yarn db:down` | Start / stop local Postgres          |
+Both sides share the same script names.
 
-Postgres is defined in [`server/docker-compose.yml`](server/docker-compose.yml); `yarn db:up`
-works from the repo root, and `yarn db:up` inside `server/` does the same thing.
+| Script           | Server                     | Client                   |
+| ---------------- | -------------------------- | ------------------------ |
+| `yarn dev`       | tsx watch on `src/index.ts` | `next dev` on port 3000 |
+| `yarn build`     | `tsc` to `dist/`            | `next build`            |
+| `yarn start`     | `node dist/index.js`        | `next start`            |
+| `yarn typecheck` | ✅                          | ✅                       |
+| `yarn lint`      | ✅                          | ✅                       |
+| `yarn format`    | ✅                          | ✅                       |
+
+The server adds database scripts of its own:
+
+| Script             | Does                                                  |
+| ------------------ | ----------------------------------------------------- |
+| `yarn db:up`       | Starts Postgres in Docker on port 5433                |
+| `yarn db:down`     | Stops it, keeping the volume                          |
+| `yarn db:generate` | Regenerates the Prisma client into `src/generated`    |
+| `yarn db:migrate`  | Creates and applies a migration                       |
+| `yarn db:seed`     | Upserts the admin from `SEED_ADMIN_*`                 |
+| `yarn db:studio`   | Opens Prisma Studio to browse the data                |
+
+Run `yarn db:generate` after every `git pull` that touches `prisma/schema.prisma`, because the
+generated client is not committed.
+
+## API
+
+| Method  | Path                    | Access | Purpose                                       |
+| ------- | ----------------------- | ------ | --------------------------------------------- |
+| `GET`   | `/api/health`           | Public | Liveness, service name, version, uptime       |
+| `POST`  | `/api/pricing/preview`  | Public | Validates a line, returns area and line total  |
+| `POST`  | `/api/auth/login`       | Public | Returns a JWT and the signed-in user           |
+| `POST`  | `/api/auth/logout`      | Public | Acknowledgement; the client discards the token |
+| `GET`   | `/api/auth/me`          | Signed in | The current user, re-read from the database |
+| `GET`   | `/api/users`            | Admin  | Lists staff and admins                         |
+| `POST`  | `/api/users`            | Admin  | Creates a staff or admin account               |
+| `PATCH` | `/api/users/:id/status` | Admin  | Activates or deactivates an account            |
+
+Protected routes expect `Authorization: Bearer <token>`. Deactivating someone takes effect on
+their very next request: `requireAuth` re-reads the user, so an already-issued token stops
+working rather than lasting until it expires.
+
+Every failure returns the same shape, with `issues` present on validation errors:
+
+```json
+{
+  "error": {
+    "message": "Please check the highlighted fields",
+    "code": "VALIDATION_ERROR",
+    "issues": [{ "field": "width", "message": "Width is required for products priced per m²" }]
+  }
+}
+```
 
 ## Build stages
 
-The app is built in stages, each one pushed separately so the work can be followed commit by
-commit.
-
-1. **Foundation** — monorepo, TypeScript, API skeleton, design tokens, local Postgres ✅
-2. **Auth** — Prisma schema, Admin/Staff roles, JWT login, RBAC, login page
+1. **Foundation** — two projects, TypeScript, server validation, design tokens, local Postgres ✅
+2. **Auth** — Prisma schema, Admin/Staff roles, JWT login, RBAC, login page ✅
 3. **Catalogue and clients** — products with pricing types and soft disable, client records
 4. **Invoices** — product-driven measurement, totals, discount, frozen invoice date
 5. **Print and share** — printable invoice, PDF, WhatsApp / link / email

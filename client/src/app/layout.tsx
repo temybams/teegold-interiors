@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 
+import { AuthProvider } from '@/lib/auth-context';
+
 import './globals.css';
 
 const inter = Inter({
@@ -23,7 +25,9 @@ export const metadata: Metadata = {
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => (
   <html lang="en">
-    <body className={`${inter.variable} ${cormorant.variable} font-sans`}>{children}</body>
+    <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
+      <AuthProvider>{children}</AuthProvider>
+    </body>
   </html>
 );
 
