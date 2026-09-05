@@ -3,16 +3,32 @@
 Business management and invoicing application for Teegold Interiors — customers, catalogue,
 quotations, invoices with measurement-driven pricing, payments and invoice sharing.
 
+## Layout
+
+Client and backend are separate top-level folders, tied together by Yarn workspaces.
+
+```
+teegold/
+├── client/   Next.js app — everything the browser runs
+├── server/   Express API, Prisma and its Postgres compose file
+├── shared/   Types, Zod schemas, money and pricing helpers used by both
+└── (root)    Yarn workspaces, ESLint, Prettier, base tsconfig
+```
+
+Nothing backend lives outside `server/`. `shared/` sits on its own because both sides import it —
+it exists so the browser and the API calculate a line total the same way, and the area of a blind
+is never worked out twice with two different rounding rules.
+
 ## Stack
 
-| Part                       | Choice                                        |
-| -------------------------- | --------------------------------------------- |
-| Monorepo                   | Yarn workspaces                               |
-| Web (`apps/web`)           | Next.js App Router, TypeScript, Tailwind CSS  |
-| API (`apps/api`)           | Express, TypeScript, Zod                      |
-| Shared (`packages/shared`) | Types, Zod schemas, money and pricing helpers |
-| Database                   | PostgreSQL via Prisma (Stage 2)               |
-| Hosting                    | Web on Vercel, API on Render                  |
+| Part     | Choice                                        |
+| -------- | --------------------------------------------- |
+| Monorepo | Yarn workspaces                               |
+| `client` | Next.js App Router, TypeScript, Tailwind CSS  |
+| `server` | Express, TypeScript, Zod                      |
+| `shared` | Types, Zod schemas, money and pricing helpers |
+| Database | PostgreSQL via Prisma (Stage 2)               |
+| Hosting  | Client on Vercel, server on Render            |
 
 ## Requirements
 
@@ -25,27 +41,30 @@ quotations, invoices with measurement-driven pricing, payments and invoice shari
 ```bash
 yarn install
 
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
+cp server/.env.example server/.env
+cp client/.env.example client/.env.local
 
 yarn db:up   # starts Postgres on localhost:5432
-yarn dev     # API on :4000, web on :3000
+yarn dev     # server on :4000, client on :3000
 ```
 
-`yarn dev` builds `packages/shared` first, then runs both apps together.
+`yarn dev` builds `shared/` first, then runs both sides together.
 
 ## Scripts
 
-| Script                        | What it does                            |
-| ----------------------------- | --------------------------------------- |
-| `yarn dev`                    | Shared build, then API and web together |
-| `yarn dev:api`                | API only, watch mode                    |
-| `yarn dev:web`                | Web only                                |
-| `yarn build`                  | Build shared, API and web               |
-| `yarn typecheck`              | TypeScript across every workspace       |
-| `yarn lint`                   | ESLint across the repo                  |
-| `yarn format`                 | Prettier write                          |
-| `yarn db:up` / `yarn db:down` | Start / stop local Postgres             |
+| Script                        | What it does                         |
+| ----------------------------- | ------------------------------------ |
+| `yarn dev`                    | Shared build, then server and client |
+| `yarn dev:server`             | Backend only, watch mode             |
+| `yarn dev:client`             | Frontend only                        |
+| `yarn build`                  | Build shared, server and client      |
+| `yarn typecheck`              | TypeScript across every workspace    |
+| `yarn lint`                   | ESLint across the repo               |
+| `yarn format`                 | Prettier write                       |
+| `yarn db:up` / `yarn db:down` | Start / stop local Postgres          |
+
+Postgres is defined in [`server/docker-compose.yml`](server/docker-compose.yml); `yarn db:up`
+works from the repo root, and `yarn db:up` inside `server/` does the same thing.
 
 ## Build stages
 
@@ -65,7 +84,7 @@ commit.
 
 The admin app carries the full indigo palette; the public landing page uses a quieter
 warm-neutral set and only accents with indigo. Tokens live in
-[`apps/web/src/app/globals.css`](apps/web/src/app/globals.css).
+[`client/src/app/globals.css`](client/src/app/globals.css).
 
 | Token       | Hex       | Use                                |
 | ----------- | --------- | ---------------------------------- |

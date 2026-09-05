@@ -5,24 +5,25 @@
   "description": "Teegold Interiors Management System",
   "license": "UNLICENSED",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "client",
+    "server",
+    "shared"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "yarn build:shared && concurrently -n api,web -c magenta,cyan \"yarn dev:api\" \"yarn dev:web\"",
-    "dev:api": "yarn workspace @teegold/api dev",
-    "dev:web": "yarn workspace @teegold/web dev",
-    "build": "yarn build:shared && yarn workspace @teegold/api build && yarn workspace @teegold/web build",
+    "dev": "yarn build:shared && concurrently -n server,client -c magenta,cyan \"yarn dev:server\" \"yarn dev:client\"",
+    "dev:server": "yarn workspace @teegold/server dev",
+    "dev:client": "yarn workspace @teegold/client dev",
+    "build": "yarn build:shared && yarn workspace @teegold/server build && yarn workspace @teegold/client build",
     "build:shared": "yarn workspace @teegold/shared build",
     "typecheck": "yarn workspaces run typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:up": "docker compose -f server/docker-compose.yml up -d",
+    "db:down": "docker compose -f server/docker-compose.yml down"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

@@ -10,7 +10,7 @@ import { ApiStatus } from '@/components/api-status';
 import { Wordmark } from '@/components/wordmark';
 
 const wired = [
-  'Yarn workspaces monorepo — apps/web, apps/api, packages/shared',
+  'Yarn workspaces monorepo — client, server and shared as separate folders',
   'TypeScript in strict mode everywhere, with a shared base config',
   'Express API with helmet, CORS, request logging and a /health route',
   'Zod-validated environment variables on the API',
