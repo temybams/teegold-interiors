@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens locked in the plan. Admin app carries the full indigo; the public
+ * landing page uses the quieter warm-neutral set and only accents with indigo.
+ */
+@theme {
+  /* Admin app */
+  --color-canvas: #fafaff;
+  --color-surface: #ffffff;
+  --color-ink: #16162b;
+  --color-muted: #6b6b80;
+  --color-brand: #4f46e5;
+  --color-brand-dark: #3730a3;
+  --color-brand-deep: #1e1b3a;
+  --color-lilac: #edebfe;
+  --color-hairline: #e7e7f0;
+
+  /* Status, never decorative */
+  --color-paid: #067647;
+  --color-pending: #b4690e;
+  --color-cancelled: #b42318;
+
+  /* Public landing page */
+  --color-page: #fafaf9;
+  --color-page-ink: #1a1a24;
+  --color-stone: #f4f2ef;
+  --color-charcoal: #17171c;
+  --color-page-hairline: #e8e5e0;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, 'Times New Roman', serif;
+
+  --radius-card: 4px;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Money and measurements line up column-wise in tables. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

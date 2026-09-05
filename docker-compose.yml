@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: teegold-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: teegold
+      POSTGRES_PASSWORD: teegold
+      POSTGRES_DB: teegold
+    ports:
+      - '5432:5432'
+    volumes:
+      - teegold-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U teegold -d teegold']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  teegold-db-data:
