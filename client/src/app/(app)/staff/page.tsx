@@ -1,12 +1,12 @@
 'use client';
 
-import { whatsappUrl } from '@teegold/shared';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { TableSkeleton } from '@/components/loader';
 import { apiFetch, apiPatch, apiPost, isApiRequestError, type ApiIssue } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { whatsappUrl } from '@/lib/phone';
 import {
   invitedUserResponseSchema,
   usersResponseSchema,
@@ -219,7 +219,7 @@ const StaffPage = () => {
 
   if (me?.role !== 'ADMIN') {
     return (
-      <main className="px-8 py-10">
+      <main className="px-4 py-8 sm:px-8 sm:py-10">
         <h1 className="font-serif text-3xl">Staff</h1>
         <p className="mt-3 text-sm text-muted">Only an admin can manage staff accounts.</p>
       </main>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { Monogram } from '@/components/wordmark';
+import { Wordmark } from '@/components/wordmark';
 import { isApiRequestError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -42,10 +42,9 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-16">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
       <form onSubmit={submit} className="w-full max-w-sm">
-        <Monogram className="size-11 text-brand" />
-        <p className="mt-4 font-serif text-lg tracking-[0.2em] uppercase">Teegold Interiors</p>
+        <Wordmark />
         <h1 className="mt-10 font-serif text-3xl">Choose a new password</h1>
 
         <label className="mt-8 block">

@@ -11,6 +11,10 @@ export const PRICING_TYPE_LABELS: Record<PricingType, string> = {
   PER_ROLL: 'Per roll',
 };
 
+export const PRODUCT_CATEGORIES = ['Window Blinds', 'Curtains', 'Accessories', 'Services'] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
 /** Only measured products ask for width and height; everything else asks for quantity. */
 export const isMeasured = (pricingType: PricingType): boolean => pricingType === 'PER_M2';
 

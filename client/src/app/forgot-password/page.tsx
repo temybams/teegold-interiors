@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { z } from 'zod';
 
-import { Monogram } from '@/components/wordmark';
+import { Wordmark } from '@/components/wordmark';
 import { apiPost, isApiRequestError } from '@/lib/api';
 
 const responseSchema = z.object({
@@ -41,10 +41,9 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-16">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
       <div className="w-full max-w-sm">
-        <Monogram className="size-11 text-brand" />
-        <p className="mt-4 font-serif text-lg tracking-[0.2em] uppercase">Teegold Interiors</p>
+        <Wordmark />
         <h1 className="mt-10 font-serif text-3xl">Reset password</h1>
         <p className="mt-1 text-sm text-muted">
           Enter the email on your account. If it exists, we will send a reset link.

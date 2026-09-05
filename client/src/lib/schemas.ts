@@ -77,3 +77,137 @@ export const linePreviewSchema = z.object({
 });
 
 export type LinePreview = z.infer<typeof linePreviewSchema>;
+
+export const PRICING_TYPES = ['PER_M2', 'PER_PIECE', 'PER_SERVICE', 'PER_ROLL'] as const;
+
+export const productSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  pricingType: z.enum(PRICING_TYPES),
+  unitPrice: z.number(),
+  active: z.boolean(),
+  createdAt: z.string(),
+});
+
+export type Product = z.infer<typeof productSchema>;
+
+export const productsResponseSchema = z.object({
+  products: z.array(productSchema),
+});
+
+export const productResponseSchema = z.object({
+  product: productSchema,
+});
+
+export const customerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phone: z.string(),
+  address: z.string(),
+  invoiceCount: z.number(),
+  totalSpent: z.number(),
+  createdAt: z.string(),
+});
+
+export type Customer = z.infer<typeof customerSchema>;
+
+export const customersResponseSchema = z.object({
+  customers: z.array(customerSchema),
+});
+
+export const customerResponseSchema = z.object({
+  customer: customerSchema,
+});
+
+export const PAYMENT_STATUSES = ['UNPAID', 'PARTIAL', 'PAID'] as const;
+
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const invoiceCustomerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phone: z.string(),
+  address: z.string(),
+});
+
+export const invoiceItemSchema = z.object({
+  id: z.string(),
+  productId: z.string().nullable(),
+  nameSnapshot: z.string(),
+  pricingType: z.enum(PRICING_TYPES),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+  area: z.number().nullable(),
+  quantity: z.number(),
+  unitPrice: z.number(),
+  lineTotal: z.number(),
+});
+
+export type InvoiceItem = z.infer<typeof invoiceItemSchema>;
+
+export const invoiceSummarySchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  customer: invoiceCustomerSchema,
+  discount: z.number(),
+  subtotal: z.number(),
+  total: z.number(),
+  amountPaid: z.number(),
+  balance: z.number(),
+  paymentStatus: z.enum(PAYMENT_STATUSES),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  cancelledAt: z.string().nullable(),
+});
+
+export type InvoiceSummary = z.infer<typeof invoiceSummarySchema>;
+
+export const invoiceSchema = invoiceSummarySchema.extend({
+  createdBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  publicToken: z.string().optional(),
+  items: z.array(invoiceItemSchema),
+});
+
+export type Invoice = z.infer<typeof invoiceSchema>;
+
+export const invoiceCountsSchema = z.object({
+  all: z.number(),
+  paid: z.number(),
+  pending: z.number(),
+  cancelled: z.number(),
+});
+
+export const invoicesResponseSchema = z.object({
+  invoices: z.array(invoiceSummarySchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  counts: invoiceCountsSchema,
+});
+
+export const invoiceResponseSchema = z.object({
+  invoice: invoiceSchema,
+});
+
+export const publicInvoiceSchema = invoiceSummarySchema.extend({
+  items: z.array(invoiceItemSchema),
+});
+
+export type PublicInvoiceView = z.infer<typeof publicInvoiceSchema>;
+
+export const publicInvoiceResponseSchema = z.object({
+  invoice: publicInvoiceSchema,
+});
+
+export const invoiceShareSchema = z.object({
+  url: z.string(),
+  message: z.string(),
+  phone: z.string(),
+});
+
+export const invoiceEmailResponseSchema = z.object({
+  emailed: z.boolean(),
+  url: z.string(),
+  message: z.string(),
+});

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { Monogram } from '@/components/wordmark';
 import { useAuth } from '@/lib/auth-context';
 import { navItems, visibleTo } from '@/lib/nav';
 
@@ -17,27 +18,32 @@ export const Sidebar = () => {
   return (
     <aside className="hidden w-64 shrink-0 flex-col bg-brand-deep text-white lg:flex">
       <div className="px-6 py-7">
-        <Link
-          href="/"
-          className="font-serif text-base leading-tight tracking-[0.18em] uppercase hover:text-white/80"
-        >
-          Teegold
-          <br />
-          Interiors
+        <Link href="/" className="flex items-center gap-3 hover:text-white/80">
+          <Monogram className="size-9 shrink-0 text-white" />
+          <span className="font-serif text-sm leading-tight tracking-[0.18em] uppercase">
+            Teegold
+            <br />
+            Interiors
+          </span>
         </Link>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-2 px-2">
+      <nav className="mt-6 flex flex-1 flex-col gap-2 px-2">
         {navItems.filter(visibleTo(user.role)).map((item) => {
-          const active = pathname === item.href;
+          const active =
+            pathname === item.href ||
+            (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`));
+
+          const Icon = item.icon;
 
           if (!item.ready) {
             return (
               <span
                 key={item.href}
-                className="flex items-center justify-between px-4 py-2.5 text-sm text-white/35"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/35"
               >
-                {item.label}
+                <Icon className="size-4 shrink-0" />
+                <span className="flex-1">{item.label}</span>
                 <span className="text-[10px] tracking-widest uppercase">Soon</span>
               </span>
             );
@@ -47,11 +53,12 @@ export const Sidebar = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`relative block px-4 py-2.5 text-sm ${
+              className={`relative flex items-center gap-3 px-4 py-2.5 text-sm ${
                 active ? 'text-white' : 'text-white/70 hover:text-white'
               }`}
             >
               {active && <span className="absolute top-0 left-0 h-full w-0.5 bg-brand" />}
+              <Icon className="size-4 shrink-0" />
               {item.label}
             </Link>
           );

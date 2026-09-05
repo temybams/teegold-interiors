@@ -91,3 +91,32 @@ export const apiPost = <T>(path: string, body?: unknown): Promise<T> =>
 
 export const apiPatch = <T>(path: string, body: unknown): Promise<T> =>
   apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+
+const triggerDownload = (blob: Blob, filename: string) => {
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(href);
+};
+
+export const apiDownload = async (path: string, filename: string): Promise<void> => {
+  const response = await fetch(`${apiBaseUrl}${path}`, { credentials: 'include' });
+
+  if (!response.ok) {
+    throw apiRequestError(response.status, 'Could not download the file', 'DOWNLOAD_FAILED', []);
+  }
+
+  triggerDownload(await response.blob(), filename);
+};
+
+export const downloadPublicPdf = async (token: string, filename: string): Promise<void> => {
+  const response = await fetch(`${apiBaseUrl}/api/public/invoices/${token}/pdf`);
+
+  if (!response.ok) {
+    throw apiRequestError(response.status, 'Could not download the invoice', 'DOWNLOAD_FAILED', []);
+  }
+
+  triggerDownload(await response.blob(), filename);
+};

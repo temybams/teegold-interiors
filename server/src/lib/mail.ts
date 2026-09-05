@@ -7,6 +7,7 @@ type Mail = {
   subject: string;
   text: string;
   html: string;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
 };
 
 const transporter = isMailConfigured
@@ -37,6 +38,7 @@ export const sendMail = async (mail: Mail): Promise<boolean> => {
     subject: mail.subject,
     text: mail.text,
     html: mail.html,
+    attachments: mail.attachments,
   });
 
   return true;
@@ -92,6 +94,34 @@ export const resetEmail = (input: { name: string; resetUrl: string }) => {
 <p>Open this link to choose a new one. If you did not ask for this, ignore the email.</p>
 <p><a href="${input.resetUrl}">${input.resetUrl}</a></p>
 <p>The link expires in 1 hour.</p>
+<p>Teegold Interiors</p>`,
+  };
+};
+
+export const invoiceEmail = (input: {
+  customerName: string;
+  number: string;
+  totalLabel: string;
+  url: string;
+}) => {
+  const first = input.customerName.split(/\s+/)[0] ?? input.customerName;
+  const text = [
+    `Hello ${first},`,
+    '',
+    `Please find your Teegold Interiors invoice ${input.number}. Total: ${input.totalLabel}.`,
+    'A PDF is attached. You can also open it here:',
+    '',
+    input.url,
+    '',
+    'Teegold Interiors',
+  ].join('\n');
+
+  return {
+    subject: `Teegold Interiors invoice ${input.number}`,
+    text,
+    html: `<p>Hello ${first},</p>
+<p>Please find your Teegold Interiors invoice ${input.number}. Total: ${input.totalLabel}.</p>
+<p>A PDF is attached. You can also <a href="${input.url}">open it here</a>.</p>
 <p>Teegold Interiors</p>`,
   };
 };

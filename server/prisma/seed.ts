@@ -48,6 +48,29 @@ const main = async () => {
     });
 
     console.log(`[seed] admin ready: ${admin.email}`);
+
+    const catalogue = [
+      { name: 'Zebra Blind', category: 'Window Blinds', pricingType: 'PER_M2' as const, unitPrice: 25_000 },
+      { name: 'Roller Blind', category: 'Window Blinds', pricingType: 'PER_M2' as const, unitPrice: 20_000 },
+      { name: 'Venetian Blind', category: 'Window Blinds', pricingType: 'PER_M2' as const, unitPrice: 22_000 },
+      { name: 'Vertical Blind', category: 'Window Blinds', pricingType: 'PER_M2' as const, unitPrice: 18_000 },
+      { name: 'Roman Blind', category: 'Window Blinds', pricingType: 'PER_M2' as const, unitPrice: 24_000 },
+      { name: 'Curtain', category: 'Curtains', pricingType: 'PER_M2' as const, unitPrice: 12_000 },
+      { name: 'Curtain Rod', category: 'Accessories', pricingType: 'PER_PIECE' as const, unitPrice: 8_000 },
+      { name: 'Curtain Track', category: 'Accessories', pricingType: 'PER_PIECE' as const, unitPrice: 6_500 },
+      { name: 'Wallpaper', category: 'Accessories', pricingType: 'PER_ROLL' as const, unitPrice: 15_000 },
+      { name: 'Installation', category: 'Services', pricingType: 'PER_SERVICE' as const, unitPrice: 10_000 },
+    ];
+
+    for (const item of catalogue) {
+      await prisma.product.upsert({
+        where: { name: item.name },
+        update: {},
+        create: item,
+      });
+    }
+
+    console.log(`[seed] catalogue ready: ${catalogue.length} products`);
   } finally {
     await prisma.$disconnect();
   }

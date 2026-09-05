@@ -43,7 +43,9 @@ export const ApiStatus = () => {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs tracking-[0.12em] text-muted uppercase">Server connection</p>
-          <p className="mt-1 font-mono text-sm text-ink">{apiBaseUrl}/api/health</p>
+          <p className="mt-1 break-all font-mono text-xs text-ink sm:text-sm">
+            {apiBaseUrl}/api/health
+          </p>
         </div>
 
         {state.kind === 'loading' && (

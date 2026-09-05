@@ -37,6 +37,7 @@
 body {
   background-color: var(--color-canvas);
   color: var(--color-ink);
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -75,5 +76,169 @@ body {
   .teegold-spin,
   .teegold-shimmer {
     animation: none;
+  }
+}
+
+/* Public landing page — quiet motion, like a curtain opening on a room. */
+@keyframes site-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes site-curtain {
+  from {
+    clip-path: inset(0 46% 0 46%);
+    opacity: 0.35;
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes site-kenburns {
+  from {
+    transform: scale(1.12);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+.site-hero-copy > * {
+  animation: site-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.site-hero-copy > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.site-hero-copy > *:nth-child(3) {
+  animation-delay: 0.26s;
+}
+
+.site-hero-frame {
+  animation: site-curtain 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 24px 60px -28px rgb(26 26 36 / 35%);
+}
+
+.site-photo-hero {
+  animation: site-kenburns 20s ease-out forwards;
+}
+
+.site-photo-zoom {
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-photo:hover .site-photo-zoom {
+  transform: scale(1.06);
+}
+
+.site-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+.site-card {
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s ease;
+}
+
+.site-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -24px rgb(26 26 36 / 28%);
+}
+
+.site-nav-link {
+  position: relative;
+}
+
+.site-nav-link::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.site-nav-link:hover::after {
+  transform: scaleX(1);
+}
+
+.site-cta {
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.site-cta:hover {
+  transform: translateY(-1px);
+}
+
+@media print {
+  body {
+    background: #fff;
+    overflow: visible;
+  }
+
+  .invoice-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .invoice-sheet {
+    max-width: none;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-hero-frame,
+  .site-photo-hero,
+  .site-hero-copy > * {
+    animation: none;
+  }
+
+  .site-reveal,
+  .site-reveal-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .site-card,
+  .site-cta,
+  .site-photo-zoom,
+  .site-nav-link::after {
+    transition: none;
+  }
+
+  .site-card:hover,
+  .site-cta:hover,
+  .site-photo:hover .site-photo-zoom {
+    transform: none;
   }
 }

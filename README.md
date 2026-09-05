@@ -108,6 +108,13 @@ generated client is not committed.
 | `GET`   | `/api/users`            | Admin  | Lists staff and admins                         |
 | `POST`  | `/api/users/invites`    | Admin  | Invites staff; emails the link when SMTP is set |
 | `PATCH` | `/api/users/:id/status` | Admin  | Activates or suspends an account               |
+| `GET`   | `/api/products`         | Signed in | Catalogue list                              |
+| `POST`  | `/api/products`         | Admin  | Add a product                                  |
+| `PATCH` | `/api/products/:id`     | Admin  | Edit a product                                 |
+| `PATCH` | `/api/products/:id/status` | Admin | Enable or disable a product                 |
+| `GET`   | `/api/customers`        | Signed in | Client list, optional `?q=`                 |
+| `POST`  | `/api/customers`        | Signed in | Add a client                                 |
+| `PATCH` | `/api/customers/:id`    | Signed in | Edit a client                                |
 
 The session lives in httpOnly cookies (`teegold_access`, `teegold_refresh`), not in
 `localStorage`. Suspending someone takes effect on their next click: `requireAuth` re-reads
@@ -129,7 +136,7 @@ Every failure returns the same shape, with `issues` present on validation errors
 
 1. **Foundation** — two projects, TypeScript, server validation, design tokens, local Postgres ✅
 2. **Auth** — Prisma schema, Admin/Staff roles, JWT login, RBAC, login page ✅
-3. **Catalogue and clients** — products with pricing types and soft disable, client records
+3. **Catalogue and clients** — products with pricing types and soft disable, client records ✅
 4. **Invoices** — product-driven measurement, totals, discount, frozen invoice date
 5. **Print and share** — printable invoice, PDF, WhatsApp / link / email
 6. **Quotations and payments** — quotations, convert to invoice, payment status, list filters

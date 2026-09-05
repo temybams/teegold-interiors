@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 
 import { AuthProvider } from '@/lib/auth-context';
@@ -23,8 +23,14 @@ export const metadata: Metadata = {
   description: 'Blinds, curtains and window treatments — GRA, Ado-Ekiti',
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 const RootLayout = ({ children }: { children: React.ReactNode }) => (
-  <html lang="en">
+  <html lang="en" className="scroll-smooth">
     <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
       <AuthProvider>{children}</AuthProvider>
     </body>

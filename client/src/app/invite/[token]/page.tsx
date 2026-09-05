@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { InlineLoader } from '@/components/loader';
-import { Monogram } from '@/components/wordmark';
+import { Wordmark } from '@/components/wordmark';
 import { apiFetch, isApiRequestError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { inviteDetailsResponseSchema } from '@/lib/schemas';
@@ -84,10 +84,9 @@ const InvitePage = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-16">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
       <div className="w-full max-w-sm">
-        <Monogram className="size-11 text-brand" />
-        <p className="mt-4 font-serif text-lg tracking-[0.2em] uppercase">Teegold Interiors</p>
+        <Wordmark />
 
         {state.kind === 'loading' && <InlineLoader label="Checking your invite" />}
 

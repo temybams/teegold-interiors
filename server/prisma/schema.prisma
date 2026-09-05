@@ -1,5 +1,4 @@
-// Stage 2 covers users and authentication only.
-// Catalogue, customers, quotations and invoices arrive in later stages.
+// Stage 4 adds invoices. Print, share, quotations and payments come next.
 
 generator client {
   provider = "prisma-client"
@@ -55,8 +54,104 @@ model User {
   activatedAt DateTime?
   suspendedAt DateTime?
 
+  invoices Invoice[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+enum PricingType {
+  PER_M2
+  PER_PIECE
+  PER_SERVICE
+  PER_ROLL
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  category    String
+  pricingType PricingType
+  /// Whole Naira. The shared helpers do the money math.
+  unitPrice   Int
+  /// Disabled products stay on old invoices; they just leave the picker.
+  active      Boolean     @default(true)
+  invoiceItems InvoiceItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("products")
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String
+  address   String
+  invoices  Invoice[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([phone])
+  @@index([name])
+  @@map("customers")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model NumberSequence {
+  key   String @id
+  value Int
+
+  @@map("number_sequences")
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  number         String        @unique
+  customerId     String
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  createdById    String?
+  createdBy      User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  discount       Int           @default(0)
+  subtotal       Int
+  total          Int
+  amountPaid     Int           @default(0)
+  balance        Int
+  paymentStatus  PaymentStatus @default(UNPAID)
+  /// Random token for the public share link in Stage 5.
+  publicToken    String        @unique
+  /// Frozen on first save. The dashboard clock is live; this is not.
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  cancelledAt    DateTime?
+  items          InvoiceItem[]
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String      @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameSnapshot  String
+  pricingType   PricingType
+  width         Float?
+  height        Float?
+  area          Float?
+  quantity      Float
+  unitPrice     Int
+  lineTotal     Int
+
+  @@map("invoice_items")
 }

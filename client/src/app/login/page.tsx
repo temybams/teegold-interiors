@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { Monogram } from '@/components/wordmark';
+import { Wordmark } from '@/components/wordmark';
 import { isApiRequestError, type ApiIssue } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
@@ -49,10 +49,9 @@ const LoginPage = () => {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center px-6 py-16">
+      <div className="flex items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
         <form onSubmit={submit} className="w-full max-w-sm">
-          <Monogram className="size-11 text-brand" />
-          <p className="mt-4 font-serif text-lg tracking-[0.2em] uppercase">Teegold Interiors</p>
+          <Wordmark />
 
           <h1 className="mt-10 font-serif text-3xl">Sign in</h1>
           <p className="mt-1 text-sm text-muted">Manage orders, invoices and clients</p>

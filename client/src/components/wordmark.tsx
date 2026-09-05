@@ -28,9 +28,17 @@ export const Monogram = ({ className }: WordmarkProps) => (
   </svg>
 );
 
-export const Wordmark = ({ className }: WordmarkProps) => (
-  <span className={`flex items-center gap-3 ${className ?? ''}`}>
-    <Monogram className="size-9 text-brand" />
-    <span className="font-serif text-lg tracking-[0.2em] uppercase">Teegold Interiors</span>
+type LockupProps = WordmarkProps & {
+  markClassName?: string;
+  textClassName?: string;
+};
+
+/** TG diamond beside the name — use this anywhere the brand appears. */
+export const Wordmark = ({ className, markClassName, textClassName }: LockupProps) => (
+  <span className={`flex items-center gap-2.5 ${className ?? ''}`}>
+    <Monogram className={markClassName ?? 'size-9 shrink-0 text-brand'} />
+    <span className={textClassName ?? 'font-serif text-lg tracking-[0.2em] uppercase'}>
+      Teegold Interiors
+    </span>
   </span>
 );

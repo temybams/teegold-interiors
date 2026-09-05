@@ -77,7 +77,7 @@ export const MeasurementPreview = () => {
         Measurement check — Zebra Blind
       </h2>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {fields.map((field) => {
           const issue = issueFor(issues, field.key);
 

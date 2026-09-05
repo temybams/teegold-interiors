@@ -1,5 +1,6 @@
-import { PageLoader } from '@/components/loader';
+import { InlineLoader } from '@/components/loader';
 
-const AppLoading = () => <PageLoader label="Loading" />;
+/** Sits in the page column only — the sidebar stays put while the next screen compiles. */
+const AppLoading = () => <InlineLoader label="Loading" />;
 
 export default AppLoading;
