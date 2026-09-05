@@ -34,12 +34,16 @@ const main = async () => {
   try {
     const admin = await prisma.user.upsert({
       where: { email: SEED_ADMIN_EMAIL },
-      update: { name: SEED_ADMIN_NAME, role: 'ADMIN', isActive: true },
+      update: { name: SEED_ADMIN_NAME, role: 'ADMIN', status: 'ACTIVE' },
       create: {
         name: SEED_ADMIN_NAME,
         email: SEED_ADMIN_EMAIL,
         passwordHash: await bcrypt.hash(SEED_ADMIN_PASSWORD, 12),
         role: 'ADMIN',
+        // The first admin sets their own password through the environment, so there
+        // is no invite to accept.
+        status: 'ACTIVE',
+        activatedAt: new Date(),
       },
     });
 

@@ -3,8 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { apiFetch, apiPost } from './api';
-import { clearToken, readToken, writeToken } from './auth-storage';
-import { loginResponseSchema, meResponseSchema, type User } from './schemas';
+import { meResponseSchema, sessionResponseSchema, type User } from './schemas';
 
 type Status = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -12,26 +11,32 @@ type AuthValue = {
   status: Status;
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
+  acceptInvite: (token: string, password: string) => Promise<void>;
+  completeReset: (token: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
 
+const applySession = async (
+  path: string,
+  body: unknown,
+  setUser: (user: User) => void,
+  setStatus: (status: Status) => void,
+): Promise<void> => {
+  const result = sessionResponseSchema.parse(await apiPost<unknown>(path, body));
+  setUser(result.user);
+  setStatus('authenticated');
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [status, setStatus] = useState<Status>('loading');
   const [user, setUser] = useState<User | null>(null);
 
-  // A stored token proves nothing on its own, so it is exchanged for the real
-  // user on load. That also catches tokens revoked while the tab was closed.
   useEffect(() => {
     let cancelled = false;
 
     const restore = async () => {
-      if (!readToken()) {
-        setStatus('unauthenticated');
-        return;
-      }
-
       try {
         const { user: me } = meResponseSchema.parse(await apiFetch<unknown>('/api/auth/me'));
 
@@ -40,8 +45,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setStatus('authenticated');
         }
       } catch {
-        clearToken();
-
         if (!cancelled) {
           setUser(null);
           setStatus('unauthenticated');
@@ -56,29 +59,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const result = loginResponseSchema.parse(
-      await apiPost<unknown>('/api/auth/login', { email, password }),
-    );
+  // Sliding session: a new 12-hour cookie every 30 minutes, and again when the tab returns.
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      return;
+    }
 
-    writeToken(result.token);
-    setUser(result.user);
-    setStatus('authenticated');
-  }, []);
+    const refresh = () => {
+      void apiPost('/api/auth/refresh').catch(() => undefined);
+    };
+
+    const interval = window.setInterval(refresh, 30 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [status]);
+
+  const signIn = useCallback(
+    (email: string, password: string) =>
+      applySession('/api/auth/login', { email, password }, setUser, setStatus),
+    [],
+  );
+
+  const acceptInvite = useCallback(
+    (token: string, password: string) =>
+      applySession('/api/auth/invites/accept', { token, password }, setUser, setStatus),
+    [],
+  );
+
+  const completeReset = useCallback(
+    (token: string, password: string) =>
+      applySession('/api/auth/password-reset/confirm', { token, password }, setUser, setStatus),
+    [],
+  );
 
   const signOut = useCallback(async () => {
     try {
       await apiPost('/api/auth/logout');
     } finally {
-      clearToken();
       setUser(null);
       setStatus('unauthenticated');
     }
   }, []);
 
   const value = useMemo<AuthValue>(
-    () => ({ status, user, signIn, signOut }),
-    [status, user, signIn, signOut],
+    () => ({ status, user, signIn, acceptInvite, completeReset, signOut }),
+    [status, user, signIn, acceptInvite, completeReset, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

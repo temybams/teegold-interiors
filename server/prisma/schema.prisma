@@ -16,17 +16,47 @@ enum Role {
   STAFF
 }
 
+/// PENDING   — invited, has not chosen a password yet, cannot sign in
+/// ACTIVE    — can sign in
+/// SUSPENDED — blocked by an admin, keeps every invoice they raised
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
 model User {
-  id           String   @id @default(uuid())
-  name         String
+  id    String @id @default(uuid())
+  name  String
   /// Always stored lowercase so sign-in is not case sensitive.
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(STAFF)
-  /// Staff are deactivated rather than deleted, so their past work keeps its author.
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  email String @unique
+
+  /// Null until an invited person sets their own password, so an admin never knows it.
+  passwordHash String?
+  role         Role       @default(STAFF)
+  status       UserStatus @default(PENDING)
+  /// Optional. Used to open a WhatsApp chat with the invite link.
+  phone        String?
+
+  /// Only the hash is kept, so a copy of this table cannot be used to claim an invite.
+  inviteTokenHash String?   @unique
+  inviteExpiresAt DateTime?
+
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime?
+
+  passwordResetTokenHash String?   @unique
+  passwordResetExpiresAt DateTime?
+
+  invitedById String?
+  invitedBy   User?   @relation("Invitations", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitesSent User[]  @relation("Invitations")
+
+  activatedAt DateTime?
+  suspendedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }

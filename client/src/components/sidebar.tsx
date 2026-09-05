@@ -4,27 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { useAuth } from '@/lib/auth-context';
-import type { Role } from '@/lib/schemas';
-
-type NavItem = {
-  label: string;
-  href: string;
-  /** Unbuilt destinations are shown but inert, so the shape of the app is visible. */
-  ready: boolean;
-  adminOnly?: boolean;
-};
-
-const navItems: NavItem[] = [
-  { label: 'Overview', href: '/dashboard', ready: true },
-  { label: 'Invoices', href: '/invoices', ready: false },
-  { label: 'Quotations', href: '/quotations', ready: false },
-  { label: 'Clients', href: '/clients', ready: false },
-  { label: 'Catalogue', href: '/catalogue', ready: false, adminOnly: true },
-  { label: 'Reports', href: '/reports', ready: false },
-  { label: 'Settings', href: '/settings', ready: false, adminOnly: true },
-];
-
-const visibleTo = (role: Role) => (item: NavItem) => !item.adminOnly || role === 'ADMIN';
+import { navItems, visibleTo } from '@/lib/nav';
 
 export const Sidebar = () => {
   const pathname = usePathname();
@@ -35,16 +15,19 @@ export const Sidebar = () => {
   }
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col bg-brand-deep text-white">
+    <aside className="hidden w-64 shrink-0 flex-col bg-brand-deep text-white lg:flex">
       <div className="px-6 py-7">
-        <p className="font-serif text-base leading-tight tracking-[0.18em] uppercase">
+        <Link
+          href="/"
+          className="font-serif text-base leading-tight tracking-[0.18em] uppercase hover:text-white/80"
+        >
           Teegold
           <br />
           Interiors
-        </p>
+        </Link>
       </div>
 
-      <nav className="flex-1 px-2">
+      <nav className="flex flex-1 flex-col gap-2 px-2">
         {navItems.filter(visibleTo(user.role)).map((item) => {
           const active = pathname === item.href;
 
@@ -55,7 +38,7 @@ export const Sidebar = () => {
                 className="flex items-center justify-between px-4 py-2.5 text-sm text-white/35"
               >
                 {item.label}
-                <span className="text-[10px] tracking-[0.1em] uppercase">Soon</span>
+                <span className="text-[10px] tracking-widest uppercase">Soon</span>
               </span>
             );
           }
@@ -80,10 +63,16 @@ export const Sidebar = () => {
         <p className="text-xs text-white/50">
           {user.role === 'ADMIN' ? 'Admin' : 'Staff'} · {user.email}
         </p>
+        <Link
+          href="/"
+          className="mt-3 block text-xs text-white/60 underline underline-offset-4 hover:text-white"
+        >
+          View website
+        </Link>
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-3 text-xs text-white/60 underline underline-offset-4 hover:text-white"
+          className="mt-2 text-xs font-bold text-white underline underline-offset-4 hover:text-white/80"
         >
           Sign out
         </button>

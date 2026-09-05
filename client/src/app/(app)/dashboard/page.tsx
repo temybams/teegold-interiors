@@ -17,14 +17,9 @@ const DashboardPage = () => {
 
   return (
     <main className="px-8 py-10">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-3xl">Overview</h1>
-          <p className="mt-1 text-sm text-muted">{today()}</p>
-        </div>
-        <span className="rounded-card bg-lilac px-2.5 py-1 text-xs font-medium tracking-[0.12em] text-brand uppercase">
-          Stage 2 · Auth
-        </span>
+      <header>
+        <h1 className="font-serif text-3xl">Overview</h1>
+        <p className="mt-1 text-sm text-muted">{today()}</p>
       </header>
 
       <section className="rounded-card mt-8 border border-hairline bg-surface p-6">

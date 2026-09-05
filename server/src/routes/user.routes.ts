@@ -1,9 +1,14 @@
 import { Router } from 'express';
 
-import { getUsers, patchUserStatus, postUser } from '../controllers/user.controller';
+import {
+  getUsers,
+  patchUserStatus,
+  postUserInvite,
+  postUserInviteResend,
+} from '../controllers/user.controller';
 import { requireAuth, requireRole } from '../middlewares/auth.middleware';
 import {
-  createUserSchema,
+  inviteUserSchema,
   setUserStatusSchema,
   userIdParamsSchema,
 } from '../validations/user.validation';
@@ -15,7 +20,12 @@ export const userRouter = Router();
 userRouter.use(requireAuth, requireRole('ADMIN'));
 
 userRouter.get('/', getUsers);
-userRouter.post('/', validate({ body: createUserSchema }), postUser);
+userRouter.post('/invites', validate({ body: inviteUserSchema }), postUserInvite);
+userRouter.post(
+  '/:id/invites',
+  validate({ params: userIdParamsSchema }),
+  postUserInviteResend,
+);
 userRouter.patch(
   '/:id/status',
   validate({ params: userIdParamsSchema, body: setUserStatusSchema }),

@@ -1,5 +1,3 @@
-import { clearToken, readToken } from './auth-storage';
-
 export const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export type ApiIssue = {
@@ -32,27 +30,18 @@ const apiRequestError = (
 export const isApiRequestError = (value: unknown): value is ApiRequestError =>
   value instanceof Error && value.name === 'ApiRequestError';
 
-/** Single door to the API: attaches the token, and drops it the moment it stops working. */
-export const apiFetch = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const token = readToken();
-
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
-
-    // An expired or revoked token is useless — remove it so the app stops
-    // pretending to be signed in.
-    if (response.status === 401 && token) {
-      clearToken();
-    }
 
     throw apiRequestError(
       response.status,
@@ -67,6 +56,34 @@ export const apiFetch = async <T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   return (await response.json()) as T;
+};
+
+/**
+ * One door to the API. Cookies travel with the request. A 401 tries a silent
+ * refresh once so an overnight tab does not dump someone mid-invoice.
+ */
+export const apiFetch = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  try {
+    return await request<T>(path, init);
+  } catch (error) {
+    const isRefreshCall = path === '/api/auth/refresh';
+    const isAuthEntry =
+      path === '/api/auth/login' ||
+      path === '/api/auth/invites/accept' ||
+      path === '/api/auth/password-reset/confirm';
+
+    if (
+      isApiRequestError(error) &&
+      error.status === 401 &&
+      !isRefreshCall &&
+      !isAuthEntry
+    ) {
+      await request('/api/auth/refresh', { method: 'POST' });
+      return request<T>(path, init);
+    }
+
+    throw error;
+  }
 };
 
 export const apiPost = <T>(path: string, body?: unknown): Promise<T> =>

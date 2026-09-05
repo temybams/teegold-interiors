@@ -100,16 +100,18 @@ generated client is not committed.
 | ------- | ----------------------- | ------ | --------------------------------------------- |
 | `GET`   | `/api/health`           | Public | Liveness, service name, version, uptime       |
 | `POST`  | `/api/pricing/preview`  | Public | Validates a line, returns area and line total  |
-| `POST`  | `/api/auth/login`       | Public | Returns a JWT and the signed-in user           |
-| `POST`  | `/api/auth/logout`      | Public | Acknowledgement; the client discards the token |
+| `POST`  | `/api/auth/login`       | Public | Sets httpOnly cookies and returns the user     |
+| `POST`  | `/api/auth/refresh`     | Cookie | Issues a fresh 12-hour access cookie           |
+| `POST`  | `/api/auth/logout`      | Public | Clears cookies and the stored refresh token    |
 | `GET`   | `/api/auth/me`          | Signed in | The current user, re-read from the database |
+| `POST`  | `/api/auth/password-reset` | Public | Emails a reset link (always looks successful) |
 | `GET`   | `/api/users`            | Admin  | Lists staff and admins                         |
-| `POST`  | `/api/users`            | Admin  | Creates a staff or admin account               |
-| `PATCH` | `/api/users/:id/status` | Admin  | Activates or deactivates an account            |
+| `POST`  | `/api/users/invites`    | Admin  | Invites staff; emails the link when SMTP is set |
+| `PATCH` | `/api/users/:id/status` | Admin  | Activates or suspends an account               |
 
-Protected routes expect `Authorization: Bearer <token>`. Deactivating someone takes effect on
-their very next request: `requireAuth` re-reads the user, so an already-issued token stops
-working rather than lasting until it expires.
+The session lives in httpOnly cookies (`teegold_access`, `teegold_refresh`), not in
+`localStorage`. Suspending someone takes effect on their next click: `requireAuth` re-reads
+the user, so an already-issued cookie stops working rather than lasting until it expires.
 
 Every failure returns the same shape, with `issues` present on validation errors:
 

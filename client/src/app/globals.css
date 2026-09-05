@@ -44,3 +44,36 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+@keyframes teegold-spin {
+  from {
+    transform: rotate(45deg);
+  }
+
+  to {
+    transform: rotate(405deg);
+  }
+}
+
+@keyframes teegold-shimmer {
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.teegold-spin {
+  animation: teegold-spin 1.1s linear infinite;
+}
+
+.teegold-shimmer {
+  background: linear-gradient(90deg, var(--color-lilac) 0%, #f7f6ff 40%, var(--color-lilac) 80%);
+  background-size: 200% 100%;
+  animation: teegold-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .teegold-spin,
+  .teegold-shimmer {
+    animation: none;
+  }
+}

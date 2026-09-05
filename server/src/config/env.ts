@@ -11,8 +11,13 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().url().default('http://localhost:3000'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  /** Kept short because the browser stores the token where scripts can read it. */
-  JWT_EXPIRES_IN: z.string().default('12h'),
+  ACCESS_TOKEN_MS: z.coerce.number().int().positive().default(12 * 60 * 60 * 1000),
+  REFRESH_TOKEN_MS: z.coerce.number().int().positive().default(30 * 24 * 60 * 60 * 1000),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  MAIL_FROM: z.string().default('Teegold Interiors <hello@teegoldinteriors.ng>'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -34,3 +39,5 @@ const parseEnv = (): Env => {
 export const env = parseEnv();
 
 export const isProduction = env.NODE_ENV === 'production';
+
+export const isMailConfigured = Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);

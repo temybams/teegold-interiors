@@ -4,18 +4,24 @@ import type { Role } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/async-handler';
 import { forbidden, unauthorized } from '../utils/http-error';
+import { ACCESS_COOKIE } from '../utils/session';
 import { verifyAccessToken } from '../utils/token';
 
-const bearerToken = (header: string | undefined): string | null =>
-  header?.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : null;
+const accessTokenFrom = (req: { headers: { authorization?: string }; cookies?: Record<string, string> }) => {
+  const bearer = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice('Bearer '.length).trim()
+    : null;
+
+  return bearer || req.cookies?.[ACCESS_COOKIE] || null;
+};
 
 /**
  * Reads the user from the database on every request rather than trusting the token
- * alone, so deactivating someone takes effect immediately instead of when their
- * token expires.
+ * alone, so suspending someone takes effect on their next click instead of when
+ * their token expires.
  */
 export const requireAuth: RequestHandler = asyncHandler(async (req, _res, next) => {
-  const token = bearerToken(req.headers.authorization);
+  const token = accessTokenFrom(req);
 
   if (!token) {
     next(unauthorized('Sign in to continue'));
@@ -33,7 +39,7 @@ export const requireAuth: RequestHandler = asyncHandler(async (req, _res, next) 
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
-  if (!user || !user.isActive) {
+  if (!user || user.status !== 'ACTIVE') {
     next(unauthorized('Your session is no longer valid'));
     return;
   }

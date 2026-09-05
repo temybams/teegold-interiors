@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -106,8 +107,16 @@ const LoginPage = () => {
             {pending ? 'Signing in…' : 'Sign in'}
           </button>
 
-          <p className="mt-4 text-center text-xs text-muted">
-            Forgotten your password? Ask an admin to reset it.
+          <p className="mt-4 text-center text-xs">
+            <Link href="/forgot-password" className="text-muted underline underline-offset-4 hover:text-ink">
+              Forgotten your password?
+            </Link>
+          </p>
+
+          <p className="mt-8 text-center text-xs">
+            <Link href="/" className="text-muted underline underline-offset-4 hover:text-ink">
+              ← Back to teegoldinteriors.ng
+            </Link>
           </p>
         </form>
       </div>

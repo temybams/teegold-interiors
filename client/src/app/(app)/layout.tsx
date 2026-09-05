@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import { PageLoader } from '@/components/loader';
+import { MobileTabBar, MobileTopBar } from '@/components/mobile-nav';
 import { Sidebar } from '@/components/sidebar';
 import { useAuth } from '@/lib/auth-context';
 
@@ -21,17 +23,17 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   }, [status, router]);
 
   if (status !== 'authenticated') {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted">
-        Loading…
-      </div>
-    );
+    return <PageLoader label={status === 'loading' ? 'Signing you in' : 'Redirecting'} />;
   }
 
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <MobileTopBar />
+        <div className="flex-1 pb-16 lg:pb-0">{children}</div>
+        <MobileTabBar />
+      </div>
     </div>
   );
 };

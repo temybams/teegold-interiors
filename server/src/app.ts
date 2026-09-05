@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
@@ -14,6 +15,7 @@ export const createApp = (): Express => {
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(cors({ origin: env.CLIENT_ORIGIN, credentials: true }));
+  app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan(isProduction ? 'combined' : 'dev'));
 
