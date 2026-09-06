@@ -24,8 +24,8 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        # Prisma 7 + @prisma/streams-local need ^22.12 (or >=24)
-        value: "22.12.0"
+        # Use Node 24 for compatibility with current dependencies
+        value: "24.14.1"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
