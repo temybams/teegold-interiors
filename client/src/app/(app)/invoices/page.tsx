@@ -152,6 +152,7 @@ const InvoicesPage = () => {
                         <p className="mt-1 text-sm">{invoice.customer.name}</p>
                         <p className="mt-0.5 text-xs text-muted">
                           {formatInvoiceDate(invoice.createdAt)}
+                          {invoice.createdBy ? ` · ${invoice.createdBy.name}` : ''}
                         </p>
                       </div>
                       <InvoiceStatus invoice={invoice} />
@@ -170,11 +171,12 @@ const InvoicesPage = () => {
             </ul>
 
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[800px] text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead>
                   <tr className="text-left text-xs tracking-widest text-muted uppercase">
                     <th className="px-6 py-3 font-normal">Invoice no.</th>
                     <th className="px-6 py-3 font-normal">Client</th>
+                    <th className="px-6 py-3 font-normal">Raised by</th>
                     <th className="px-6 py-3 font-normal">Date</th>
                     <th className="px-6 py-3 font-normal">Amount</th>
                     <th className="px-6 py-3 font-normal">Paid</th>
@@ -197,6 +199,7 @@ const InvoicesPage = () => {
                           </Link>
                         </td>
                         <td className="px-6 py-3">{invoice.customer.name}</td>
+                        <td className="px-6 py-3 text-muted">{invoice.createdBy?.name ?? '—'}</td>
                         <td className="px-6 py-3 text-muted">{formatInvoiceDate(invoice.createdAt)}</td>
                         <td className={`tabular px-6 py-3 ${cancelled ? 'text-muted line-through' : ''}`}>
                           {formatNaira(invoice.total)}

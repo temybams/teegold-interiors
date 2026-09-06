@@ -40,7 +40,7 @@ export type PublicInvoice = {
   items: PublicInvoiceItem[];
 };
 
-export type PublicInvoiceSummary = Omit<PublicInvoice, 'items' | 'createdBy'>;
+export type PublicInvoiceSummary = Omit<PublicInvoice, 'items'>;
 
 type InvoiceRecord = Invoice & {
   customer: { id: string; name: string; phone: string; address: string };
@@ -91,6 +91,7 @@ const toPublicSummary = (invoice: InvoiceRecord): PublicInvoiceSummary => {
     id: full.id,
     number: full.number,
     customer: full.customer,
+    createdBy: full.createdBy,
     discount: full.discount,
     subtotal: full.subtotal,
     total: full.total,

@@ -8,6 +8,12 @@ export const business = {
   email: 'hello@teegoldinteriors.ng',
   area: 'Ado-Ekiti',
   address: 'GRA, Ado-Ekiti, Ekiti State',
+  /** Shown on unpaid / partial invoices. Settings will edit this later. */
+  bank: {
+    bankName: 'First Bank of Nigeria',
+    accountName: 'Teegold Interiors',
+    accountNumber: '0123456789',
+  },
 } as const;
 
 export const whatsappUrl = (message: string): string =>

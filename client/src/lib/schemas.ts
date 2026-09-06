@@ -150,12 +150,14 @@ export const invoiceSummarySchema = z.object({
   id: z.string(),
   number: z.string(),
   customer: invoiceCustomerSchema,
+  createdBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
   discount: z.number(),
   subtotal: z.number(),
   total: z.number(),
   amountPaid: z.number(),
   balance: z.number(),
   paymentStatus: z.enum(PAYMENT_STATUSES),
+  publicToken: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   cancelledAt: z.string().nullable(),
@@ -164,8 +166,6 @@ export const invoiceSummarySchema = z.object({
 export type InvoiceSummary = z.infer<typeof invoiceSummarySchema>;
 
 export const invoiceSchema = invoiceSummarySchema.extend({
-  createdBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
-  publicToken: z.string().optional(),
   items: z.array(invoiceItemSchema),
 });
 

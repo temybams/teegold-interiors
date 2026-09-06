@@ -8,6 +8,7 @@ const muted = rgb(107 / 255, 107 / 255, 128 / 255);
 const brand = rgb(79 / 255, 70 / 255, 229 / 255);
 const hairline = rgb(231 / 255, 231 / 255, 240 / 255);
 const lilac = rgb(237 / 255, 235 / 255, 254 / 255);
+const paid = rgb(6 / 255, 118 / 255, 71 / 255);
 
 const naira = (amount: number): string => `NGN ${Math.round(amount).toLocaleString('en-NG')}`;
 
@@ -38,11 +39,20 @@ const statusLabel = (invoice: PublicInvoice): string => {
 const dateLabel = (value: Date): string =>
   value.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' });
 
+export type PdfVariant = 'invoice' | 'receipt';
+
 /**
- * A typeset A4 invoice — not a screenshot of the admin form.
+ * A typeset A4 invoice or receipt — not a screenshot of the admin form.
  * Standard PDF fonts cannot draw ₦, so amounts use NGN.
  */
-export const buildInvoicePdf = async (invoice: PublicInvoice): Promise<Buffer> => {
+export const buildInvoicePdf = async (
+  invoice: PublicInvoice,
+  variant: PdfVariant = 'invoice',
+): Promise<Buffer> => {
+  const isReceipt = variant === 'receipt' || invoice.paymentStatus === 'PAID';
+  const showBank = !isReceipt && !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
+  const title = isReceipt ? 'RECEIPT' : 'INVOICE';
+
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]);
   const sans = await doc.embedFont(StandardFonts.Helvetica);
@@ -63,15 +73,31 @@ export const buildInvoicePdf = async (invoice: PublicInvoice): Promise<Buffer> =
     page.drawText(value, { x, y: at, size, font, color });
   };
 
+  // Soft brand mark behind the body.
+  page.drawText('TG', {
+    x: width / 2 - 40,
+    y: height / 2 - 20,
+    size: 96,
+    font: sansBold,
+    color: rgb(0.9, 0.89, 0.98),
+  });
+
   text(company.name.toUpperCase(), left, y, 14, sansBold, brand);
   y -= 16;
   text(company.tagline, left, y, 9, sans, muted);
   y -= 12;
   text(`${company.address}  ·  ${company.phone}`, left, y, 9, sans, muted);
 
-  text('INVOICE', right - sansBold.widthOfTextAtSize('INVOICE', 16), height - 56, 16, sansBold);
+  text(title, right - sansBold.widthOfTextAtSize(title, 16), height - 56, 16, sansBold);
   const status = statusLabel(invoice).toUpperCase();
-  text(status, right - sans.widthOfTextAtSize(status, 9), height - 74, 9, sans, muted);
+  text(
+    status,
+    right - sans.widthOfTextAtSize(status, 9),
+    height - 74,
+    9,
+    sans,
+    isReceipt ? paid : muted,
+  );
 
   y -= 36;
   text('BILLED TO', left, y, 8, sansBold, muted);
@@ -81,6 +107,10 @@ export const buildInvoicePdf = async (invoice: PublicInvoice): Promise<Buffer> =
   text(dateLabel(invoice.createdAt), right - sans.widthOfTextAtSize(dateLabel(invoice.createdAt), 10), y, 10, sans);
   y -= 13;
   text(invoice.customer.phone, left, y, 10, sans, muted);
+  if (invoice.createdBy) {
+    const raised = `Raised by ${invoice.createdBy.name}`;
+    text(raised, right - sans.widthOfTextAtSize(raised, 9), y, 9, sans, muted);
+  }
   y -= 13;
   text(invoice.customer.address, left, y, 10, sans, muted);
 
@@ -141,11 +171,29 @@ export const buildInvoicePdf = async (invoice: PublicInvoice): Promise<Buffer> =
     height: 26,
     color: lilac,
   });
-  row('TOTAL', naira(invoice.total), true);
+  row(isReceipt ? 'AMOUNT PAID' : 'TOTAL', naira(isReceipt ? invoice.amountPaid || invoice.total : invoice.total), true);
 
-  if (invoice.amountPaid > 0 || invoice.balance > 0) {
+  if (!isReceipt && (invoice.amountPaid > 0 || invoice.balance > 0)) {
     row('Paid', naira(invoice.amountPaid));
     row('Balance', naira(invoice.balance));
+  }
+
+  if (isReceipt) {
+    text('Payment received in full.', left + 280, y, 9, sans, paid);
+    y -= 16;
+  }
+
+  if (showBank) {
+    y -= 10;
+    text('PAY INTO', left, y, 8, sansBold, muted);
+    y -= 14;
+    text(`Bank: ${company.bank.bankName}`, left, y, 9, sans);
+    y -= 12;
+    text(`Account name: ${company.bank.accountName}`, left, y, 9, sans);
+    y -= 12;
+    text(`Account number: ${company.bank.accountNumber}`, left, y, 9, sansBold);
+    y -= 12;
+    text(`Reference: ${invoice.number}`, left, y, 9, sans, muted);
   }
 
   y = 64;
@@ -155,7 +203,7 @@ export const buildInvoicePdf = async (invoice: PublicInvoice): Promise<Buffer> =
     thickness: 0.3,
     color: hairline,
   });
-  text('Thank you for your custom.', left, y, 9, sans, muted);
+  text(isReceipt ? 'Thank you for your payment.' : 'Thank you for your custom.', left, y, 9, sans, muted);
   text(`${company.email}  ·  ${company.phone}`, left, y - 13, 8, sans, muted);
 
   return Buffer.from(await doc.save());

@@ -2,7 +2,7 @@ import type { RequestHandler, Response } from 'express';
 
 import { env } from '../config/env';
 import { invoiceEmail, sendMail } from '../lib/mail';
-import { buildInvoicePdf } from '../lib/invoice-pdf';
+import { buildInvoicePdf, type PdfVariant } from '../lib/invoice-pdf';
 import {
   cancelInvoice,
   createInvoice,
@@ -53,11 +53,22 @@ export const patchInvoiceCancel: RequestHandler = asyncHandler(async (req, res) 
   res.json({ invoice: await cancelInvoice(id, req.user!.role) });
 });
 
+const pdfVariantFrom = (query: unknown): PdfVariant => {
+  const value =
+    typeof query === 'object' && query && 'variant' in query
+      ? String((query as { variant?: string }).variant)
+      : '';
+
+  return value === 'receipt' ? 'receipt' : 'invoice';
+};
+
 export const getInvoicePdf: RequestHandler = asyncHandler(async (req, res) => {
   const { id } = req.params as { id: string };
+  const variant = pdfVariantFrom(req.query);
   const invoice = await getInvoice(id);
+  const filename = variant === 'receipt' ? `${invoice.number}-receipt.pdf` : `${invoice.number}.pdf`;
 
-  sendPdf(res, `${invoice.number}.pdf`, await buildInvoicePdf(invoice));
+  sendPdf(res, filename, await buildInvoicePdf(invoice, variant));
 });
 
 export const getPublicInvoice: RequestHandler = asyncHandler(async (req, res) => {
@@ -69,6 +80,7 @@ export const getPublicInvoice: RequestHandler = asyncHandler(async (req, res) =>
       id: invoice.id,
       number: invoice.number,
       customer: invoice.customer,
+      createdBy: invoice.createdBy,
       discount: invoice.discount,
       subtotal: invoice.subtotal,
       total: invoice.total,
@@ -85,9 +97,11 @@ export const getPublicInvoice: RequestHandler = asyncHandler(async (req, res) =>
 
 export const getPublicInvoicePdf: RequestHandler = asyncHandler(async (req, res) => {
   const { token } = req.params as { token: string };
+  const variant = pdfVariantFrom(req.query);
   const invoice = await getInvoiceByToken(token);
+  const filename = variant === 'receipt' ? `${invoice.number}-receipt.pdf` : `${invoice.number}.pdf`;
 
-  sendPdf(res, `${invoice.number}.pdf`, await buildInvoicePdf(invoice));
+  sendPdf(res, filename, await buildInvoicePdf(invoice, variant));
 });
 
 export const postInvoiceEmail: RequestHandler = asyncHandler(async (req, res) => {

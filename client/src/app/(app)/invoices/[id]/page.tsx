@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { InvoiceForm } from '@/components/invoice-form';
+import { InvoiceReceipt } from '@/components/invoice-receipt';
 import { InvoiceShare } from '@/components/invoice-share';
 import { InvoiceStatus } from '@/components/invoice-status';
 import { InlineLoader } from '@/components/loader';
@@ -35,6 +36,7 @@ const InvoiceDetailPage = () => {
   const [pendingCancel, setPendingCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -145,6 +147,15 @@ const InvoiceDetailPage = () => {
             >
               Share
             </button>
+            {invoice.paymentStatus === 'PAID' && !invoice.cancelledAt && (
+              <button
+                type="button"
+                onClick={() => setReceiptOpen(true)}
+                className="rounded-card border border-paid/40 bg-paid/10 px-3 py-2 text-sm font-medium text-paid"
+              >
+                Receipt
+              </button>
+            )}
             {canCancel && (
               <button
                 type="button"
@@ -181,6 +192,10 @@ const InvoiceDetailPage = () => {
           invoiceNumber={invoice.number}
           onClose={() => setShareOpen(false)}
         />
+      )}
+
+      {receiptOpen && invoice && (
+        <InvoiceReceipt invoice={invoice} onClose={() => setReceiptOpen(false)} />
       )}
 
       {pendingCancel && invoice && (

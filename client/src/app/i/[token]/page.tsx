@@ -15,6 +15,7 @@ const errorMessage = (caught: unknown): string =>
 const PublicInvoicePage = () => {
   const { token } = useParams<{ token: string }>();
   const search = useSearchParams();
+  const asReceipt = search.get('receipt') === '1';
   const [invoice, setInvoice] = useState<PublicInvoiceView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,10 @@ const PublicInvoicePage = () => {
     }
   }, [invoice, search]);
 
+  const variant = asReceipt || invoice?.paymentStatus === 'PAID' ? 'receipt' : 'invoice';
+  const pdfName =
+    invoice && variant === 'receipt' ? `${invoice.number}-receipt.pdf` : `${invoice?.number ?? 'invoice'}.pdf`;
+
   return (
     <div className="min-h-screen bg-page text-page-ink">
       <header className="invoice-actions mx-auto flex max-w-[720px] items-center justify-between gap-3 px-4 py-4">
@@ -86,7 +91,9 @@ const PublicInvoicePage = () => {
             </button>
             <button
               type="button"
-              onClick={() => void downloadPublicPdf(token, `${invoice.number}.pdf`)}
+              onClick={() =>
+                void downloadPublicPdf(token, pdfName, variant === 'receipt' ? 'receipt' : 'invoice')
+              }
               className="rounded-card bg-brand px-3 py-2 text-xs font-medium text-white sm:text-sm"
             >
               Download PDF
@@ -100,7 +107,7 @@ const PublicInvoicePage = () => {
         {error && <p className="mx-auto mt-10 max-w-[720px] text-sm text-cancelled">{error}</p>}
         {invoice && (
           <div className="rounded-card border border-page-hairline px-4 py-8 sm:px-10 print:border-0 print:px-0 print:py-0">
-            <InvoiceDocument invoice={invoice} />
+            <InvoiceDocument invoice={invoice} variant={variant} />
           </div>
         )}
       </main>
