@@ -59,7 +59,7 @@ Health check: `https://YOUR-API.onrender.com/api/health` should return `{ "statu
 4. **Install Command:**
 
 ```bash
-yarn --cwd ../shared install && yarn --cwd ../shared build && yarn install
+yarn --cwd ../shared install && yarn --cwd ../shared build && yarn install --production=false
 ```
 
 5. **Build Command:** `yarn build`
