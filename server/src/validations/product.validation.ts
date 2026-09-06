@@ -1,9 +1,9 @@
-import { PRODUCT_CATEGORIES, PRICING_TYPES } from '@teegold/shared';
+import { PRICING_TYPES } from '@teegold/shared';
 import { z } from 'zod';
 
 export const productBodySchema = z.object({
   name: z.string().trim().min(2, 'Enter the product name'),
-  category: z.enum(PRODUCT_CATEGORIES, { required_error: 'Choose a category' }),
+  category: z.string().trim().min(1, 'Choose a category'),
   pricingType: z.enum(PRICING_TYPES, { required_error: 'Choose how this is priced' }),
   unitPrice: z.coerce
     .number({ invalid_type_error: 'Enter a price' })
@@ -21,7 +21,7 @@ export const productIdParamsSchema = z.object({
 
 export const productListQuerySchema = z.object({
   q: z.string().trim().optional(),
-  category: z.enum(PRODUCT_CATEGORIES).optional(),
+  category: z.string().trim().optional(),
   active: z
     .enum(['true', 'false'])
     .optional()

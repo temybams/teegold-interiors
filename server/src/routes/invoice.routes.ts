@@ -7,6 +7,7 @@ import {
   getInvoices,
   patchInvoice,
   patchInvoiceCancel,
+  patchInvoicePayment,
   postInvoice,
   postInvoiceEmail,
 } from '../controllers/invoice.controller';
@@ -16,6 +17,7 @@ import {
   invoiceEmailBodySchema,
   invoiceIdParamsSchema,
   invoiceListQuerySchema,
+  invoicePaymentBodySchema,
 } from '../validations/invoice.validation';
 import { validate } from '../validations/validate';
 
@@ -37,6 +39,11 @@ invoiceRouter.patch(
   '/:id',
   validate({ params: invoiceIdParamsSchema, body: invoiceBodySchema }),
   patchInvoice,
+);
+invoiceRouter.patch(
+  '/:id/payment',
+  validate({ params: invoiceIdParamsSchema, body: invoicePaymentBodySchema }),
+  patchInvoicePayment,
 );
 invoiceRouter.patch(
   '/:id/cancel',

@@ -71,6 +71,41 @@ const main = async () => {
     }
 
     console.log(`[seed] catalogue ready: ${catalogue.length} products`);
+
+    const categories = [
+      { name: 'Window Blinds', sortOrder: 0 },
+      { name: 'Curtains', sortOrder: 1 },
+      { name: 'Accessories', sortOrder: 2 },
+      { name: 'Services', sortOrder: 3 },
+    ];
+
+    for (const category of categories) {
+      await prisma.productCategory.upsert({
+        where: { name: category.name },
+        update: { sortOrder: category.sortOrder, active: true },
+        create: category,
+      });
+    }
+
+    console.log(`[seed] categories ready: ${categories.length}`);
+
+    await prisma.companySettings.upsert({
+      where: { id: 'default' },
+      update: {},
+      create: {
+        id: 'default',
+        name: 'Teegold Interiors',
+        tagline: 'Blinds, curtains and window treatments',
+        phone: '0803 000 0000',
+        email: 'hello@teegoldinteriors.ng',
+        address: 'GRA, Ado-Ekiti, Ekiti State',
+        bankName: 'First Bank of Nigeria',
+        accountName: 'Teegold Interiors',
+        accountNumber: '0123456789',
+      },
+    });
+
+    console.log('[seed] company settings ready');
   } finally {
     await prisma.$disconnect();
   }

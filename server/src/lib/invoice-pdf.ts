@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 import type { PublicInvoice } from '../services/invoice.service';
-import { company } from './business';
+import { getCompanySettings, type PublicCompany } from '../services/settings.service';
 
 const ink = rgb(22 / 255, 22 / 255, 43 / 255);
 const muted = rgb(107 / 255, 107 / 255, 128 / 255);
@@ -48,7 +48,9 @@ export type PdfVariant = 'invoice' | 'receipt';
 export const buildInvoicePdf = async (
   invoice: PublicInvoice,
   variant: PdfVariant = 'invoice',
+  companyOverride?: PublicCompany,
 ): Promise<Buffer> => {
+  const company = companyOverride ?? (await getCompanySettings());
   const isReceipt = variant === 'receipt' || invoice.paymentStatus === 'PAID';
   const showBank = !isReceipt && !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
   const title = isReceipt ? 'RECEIPT' : 'INVOICE';
@@ -73,7 +75,6 @@ export const buildInvoicePdf = async (
     page.drawText(value, { x, y: at, size, font, color });
   };
 
-  // Soft brand mark behind the body.
   page.drawText('TG', {
     x: width / 2 - 40,
     y: height / 2 - 20,
@@ -171,7 +172,11 @@ export const buildInvoicePdf = async (
     height: 26,
     color: lilac,
   });
-  row(isReceipt ? 'AMOUNT PAID' : 'TOTAL', naira(isReceipt ? invoice.amountPaid || invoice.total : invoice.total), true);
+  row(
+    isReceipt ? 'AMOUNT PAID' : 'TOTAL',
+    naira(isReceipt ? invoice.amountPaid || invoice.total : invoice.total),
+    true,
+  );
 
   if (!isReceipt && (invoice.amountPaid > 0 || invoice.balance > 0)) {
     row('Paid', naira(invoice.amountPaid));

@@ -197,11 +197,13 @@ const buildItems = async (
   });
 };
 
-const settle = (total: number, paid: boolean) => ({
-  amountPaid: paid ? total : 0,
-  balance: paid ? 0 : total,
-  paymentStatus: (paid ? 'PAID' : 'UNPAID') as PaymentStatus,
-});
+const settleAmount = (total: number, amountPaid: number) => {
+  const paid = Math.min(Math.max(Math.round(amountPaid), 0), total);
+  const balance = total - paid;
+  const paymentStatus = (paid <= 0 ? 'UNPAID' : balance <= 0 ? 'PAID' : 'PARTIAL') as PaymentStatus;
+
+  return { amountPaid: paid, balance, paymentStatus };
+};
 
 const resolveCustomerId = async (body: InvoiceBody): Promise<string> => {
   if (body.customerId) {
@@ -337,7 +339,8 @@ export const createInvoice = async (body: InvoiceBody, createdById: string): Pro
       items.map((item) => item.lineTotal),
       body.discount,
     );
-    const settlement = settle(Math.round(totals.total), body.paid ?? false);
+    const total = Math.round(totals.total);
+    const settlement = settleAmount(total, body.paid ? total : 0);
 
     return tx.invoice.create({
       data: {
@@ -346,7 +349,7 @@ export const createInvoice = async (body: InvoiceBody, createdById: string): Pro
         createdById,
         discount: Math.round(totals.discount),
         subtotal: Math.round(totals.subtotal),
-        total: Math.round(totals.total),
+        total,
         ...settlement,
         publicToken: randomBytes(24).toString('base64url'),
         items: { create: items },
@@ -385,7 +388,13 @@ export const updateInvoice = async (
       items.map((item) => item.lineTotal),
       body.discount,
     );
-    const settlement = settle(Math.round(totals.total), body.paid ?? false);
+    const total = Math.round(totals.total);
+    const nextPaid = body.paid
+      ? total
+      : current.paymentStatus === 'PAID'
+        ? 0
+        : Math.min(current.amountPaid, total);
+    const settlement = settleAmount(total, nextPaid);
 
     await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
 
@@ -395,12 +404,35 @@ export const updateInvoice = async (
         customerId,
         discount: Math.round(totals.discount),
         subtotal: Math.round(totals.subtotal),
-        total: Math.round(totals.total),
+        total,
         ...settlement,
         items: { create: items },
       },
       include: invoiceInclude,
     });
+  });
+
+  return toPublicInvoice(invoice as InvoiceRecord);
+};
+
+export const recordPayment = async (
+  id: string,
+  amountPaid: number,
+  role: 'ADMIN' | 'STAFF',
+): Promise<PublicInvoice> => {
+  const current = await prisma.invoice.findUnique({ where: { id } });
+
+  if (!current) {
+    throw notFound('Invoice not found');
+  }
+
+  assertEditable(current, role);
+
+  const settlement = settleAmount(current.total, amountPaid);
+  const invoice = await prisma.invoice.update({
+    where: { id },
+    data: settlement,
+    include: invoiceInclude,
   });
 
   return toPublicInvoice(invoice as InvoiceRecord);

@@ -22,38 +22,38 @@ const services = [
   {
     title: 'Blinds',
     body: 'Zebra, roller, venetian, vertical and roman blinds for light you can control.',
-    src: '/images/blinds.jpg',
+    src: '/images/blinds.webp',
     alt: 'Wooden window blinds in a bright living room',
   },
   {
     title: 'Curtains',
     body: 'Fabrics, linings, rods and tracks, sewn and hung to suit the room.',
-    src: '/images/curtains.jpg',
+    src: '/images/curtains.webp',
     alt: 'Soft curtains framing a sunlit window',
   },
   {
     title: 'Measure and install',
     body: 'We measure on site, quote in writing, then fit it properly.',
-    src: '/images/install.jpg',
+    src: '/images/install.webp',
     alt: 'Installer measuring a window frame',
   },
 ];
 
 const projects = [
   {
-    src: '/images/living.jpg',
+    src: '/images/living.webp',
     alt: 'Living room with layered curtains',
   },
   {
-    src: '/images/bedroom.jpg',
+    src: '/images/bedroom.webp',
     alt: 'Bedroom dressed with soft drapes',
   },
   {
-    src: '/images/office.jpg',
+    src: '/images/office.webp',
     alt: 'Office with roller blinds',
   },
   {
-    src: '/images/dining.jpg',
+    src: '/images/dining.webp',
     alt: 'Dining room with sheer panels',
   },
 ];
@@ -86,14 +86,16 @@ const LandingPage = () => (
           </div>
         </div>
 
-        <div className="site-hero-frame">
-          <Photo
-            src="/images/hero.jpg"
-            alt="Sunlit living room with sheer curtains and wooden blinds"
-            className="h-64 sm:h-80 lg:h-[26rem]"
-            motion="hero"
-            priority
-          />
+        <div className="site-hero-lift">
+          <div className="site-hero-frame">
+            <Photo
+              src="/images/hero.webp"
+              alt="Sunlit living room with sheer curtains and wooden blinds"
+              className="h-64 sm:h-80 lg:h-[26rem]"
+              motion="hero"
+              priority
+            />
+          </div>
         </div>
       </section>
 
@@ -134,12 +136,14 @@ const LandingPage = () => (
         <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {projects.map((project, index) => (
             <Reveal key={project.src} delay={index * 80}>
-              <Photo
-                src={project.src}
-                alt={project.alt}
-                className="aspect-square"
-                sizes="(min-width: 1024px) 25vw, 50vw"
-              />
+              <div className="site-photo-lift">
+                <Photo
+                  src={project.src}
+                  alt={project.alt}
+                  className="aspect-square rounded-[inherit]"
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                />
+              </div>
             </Reveal>
           ))}
         </div>
@@ -169,7 +173,7 @@ const LandingPage = () => (
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <a
                 href={whatsappUrl(
-                  `Hello ${business.name}, I would like a quote for window treatments.`,
+                  `Hello ${business.name}, I’d like to enquire about your services. Here’s what I need: `,
                 )}
                 target="_blank"
                 rel="noreferrer"

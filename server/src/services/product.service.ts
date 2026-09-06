@@ -1,6 +1,7 @@
 import type { PricingType, Product } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import { conflict, notFound } from '../utils/http-error';
+import { assertCategoryExists } from './category.service';
 
 export type PublicProduct = {
   id: string;
@@ -68,6 +69,7 @@ const assertNameFree = async (name: string, exceptId?: string): Promise<void> =>
 
 export const createProduct = async (input: ProductInput): Promise<PublicProduct> => {
   await assertNameFree(input.name);
+  await assertCategoryExists(input.category);
 
   const product = await prisma.product.create({
     data: {
@@ -90,6 +92,9 @@ export const updateProduct = async (id: string, input: ProductInput): Promise<Pu
   }
 
   await assertNameFree(input.name, id);
+  await assertCategoryExists(input.category, {
+    requireActive: input.category !== current.category,
+  });
 
   const product = await prisma.product.update({
     where: { id },

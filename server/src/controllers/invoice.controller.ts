@@ -9,12 +9,19 @@ import {
   getInvoice,
   getInvoiceByToken,
   listInvoices,
+  recordPayment,
   updateInvoice,
 } from '../services/invoice.service';
+import { getCompanySettings } from '../services/settings.service';
 import { asyncHandler } from '../utils/async-handler';
 import { formatNaira } from '../utils/money';
 import { invoiceShareText, publicInvoiceUrl } from '../utils/share';
-import type { InvoiceBody, InvoiceEmailBody, InvoiceListQuery } from '../validations/invoice.validation';
+import type {
+  InvoiceBody,
+  InvoiceEmailBody,
+  InvoiceListQuery,
+  InvoicePaymentBody,
+} from '../validations/invoice.validation';
 
 const sendPdf = (res: Response, filename: string, pdf: Buffer) => {
   res.setHeader('Content-Type', 'application/pdf');
@@ -53,6 +60,13 @@ export const patchInvoiceCancel: RequestHandler = asyncHandler(async (req, res) 
   res.json({ invoice: await cancelInvoice(id, req.user!.role) });
 });
 
+export const patchInvoicePayment: RequestHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params as { id: string };
+  const { amountPaid } = req.body as InvoicePaymentBody;
+
+  res.json({ invoice: await recordPayment(id, amountPaid, req.user!.role) });
+});
+
 const pdfVariantFrom = (query: unknown): PdfVariant => {
   const value =
     typeof query === 'object' && query && 'variant' in query
@@ -73,9 +87,10 @@ export const getInvoicePdf: RequestHandler = asyncHandler(async (req, res) => {
 
 export const getPublicInvoice: RequestHandler = asyncHandler(async (req, res) => {
   const { token } = req.params as { token: string };
-  const invoice = await getInvoiceByToken(token);
+  const [invoice, company] = await Promise.all([getInvoiceByToken(token), getCompanySettings()]);
 
   res.json({
+    company,
     invoice: {
       id: invoice.id,
       number: invoice.number,

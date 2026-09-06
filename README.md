@@ -67,6 +67,11 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 The container publishes Postgres on host port **5433**, not 5432, so it cannot collide with
 another Postgres already running on this machine.
 
+## Production
+
+Host the web app on **Vercel**, the API + Postgres on **Render**. Step-by-step:
+[DEPLOY.md](DEPLOY.md).
+
 ## Scripts
 
 Both sides share the same script names.

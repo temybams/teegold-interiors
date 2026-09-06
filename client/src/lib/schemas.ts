@@ -197,6 +197,20 @@ export const publicInvoiceSchema = invoiceSummarySchema.extend({
 export type PublicInvoiceView = z.infer<typeof publicInvoiceSchema>;
 
 export const publicInvoiceResponseSchema = z.object({
+  company: z
+    .object({
+      name: z.string(),
+      tagline: z.string(),
+      phone: z.string(),
+      email: z.string(),
+      address: z.string(),
+      bank: z.object({
+        bankName: z.string(),
+        accountName: z.string(),
+        accountNumber: z.string(),
+      }),
+    })
+    .optional(),
   invoice: publicInvoiceSchema,
 });
 
@@ -211,3 +225,103 @@ export const invoiceEmailResponseSchema = z.object({
   url: z.string(),
   message: z.string(),
 });
+
+export const companySchema = z.object({
+  name: z.string(),
+  tagline: z.string(),
+  phone: z.string(),
+  email: z.string(),
+  address: z.string(),
+  bank: z.object({
+    bankName: z.string(),
+    accountName: z.string(),
+    accountNumber: z.string(),
+  }),
+});
+
+export type Company = z.infer<typeof companySchema>;
+
+export const companyResponseSchema = z.object({
+  company: companySchema,
+});
+
+export const categorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  active: z.boolean(),
+  sortOrder: z.number(),
+});
+
+export type Category = z.infer<typeof categorySchema>;
+
+export const categoriesResponseSchema = z.object({
+  categories: z.array(categorySchema),
+});
+
+export const categoryResponseSchema = z.object({
+  category: categorySchema,
+});
+
+export const dashboardResponseSchema = z.object({
+  todaySales: z.number(),
+  monthSales: z.number(),
+  todayCollected: z.number(),
+  monthCollected: z.number(),
+  invoiceCount: z.number(),
+  pendingCount: z.number(),
+  recentInvoices: z.array(
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      total: z.number(),
+      paymentStatus: z.enum(PAYMENT_STATUSES),
+      createdAt: z.string(),
+      customer: z.object({ id: z.string(), name: z.string() }),
+      createdBy: z.object({ id: z.string(), name: z.string() }).nullable(),
+    }),
+  ),
+  recentCustomers: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      phone: z.string(),
+      createdAt: z.string(),
+    }),
+  ),
+});
+
+export type DashboardSummary = z.infer<typeof dashboardResponseSchema>;
+
+export const reportResponseSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  sales: z.number(),
+  collected: z.number(),
+  outstanding: z.number(),
+  invoiceCount: z.number(),
+  unpaid: z.object({ count: z.number(), total: z.number(), paid: z.number() }),
+  partial: z.object({ count: z.number(), total: z.number(), paid: z.number() }),
+  paid: z.object({ count: z.number(), total: z.number(), paid: z.number() }),
+  topProducts: z.array(
+    z.object({
+      name: z.string(),
+      quantity: z.number(),
+      total: z.number(),
+    }),
+  ),
+  invoices: z.array(
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      customerName: z.string(),
+      createdByName: z.string().nullable(),
+      total: z.number(),
+      amountPaid: z.number(),
+      balance: z.number(),
+      paymentStatus: z.enum(PAYMENT_STATUSES),
+      createdAt: z.string(),
+    }),
+  ),
+});
+
+export type ReportSummary = z.infer<typeof reportResponseSchema>;

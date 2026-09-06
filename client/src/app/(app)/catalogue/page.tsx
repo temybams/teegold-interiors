@@ -7,16 +7,18 @@ import { TableSkeleton } from '@/components/loader';
 import { apiFetch, apiPatch, apiPost, isApiRequestError, type ApiIssue } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatNaira } from '@/lib/money';
-import { PRODUCT_CATEGORIES, PRICING_TYPE_LABELS, PRICING_TYPES } from '@/lib/pricing';
+import { PRICING_TYPE_LABELS, PRICING_TYPES } from '@/lib/pricing';
 import {
+  categoriesResponseSchema,
   productResponseSchema,
   productsResponseSchema,
+  type Category,
   type Product,
 } from '@/lib/schemas';
 
 const emptyForm = {
   name: '',
-  category: 'Window Blinds',
+  category: '',
   pricingType: 'PER_M2',
   unitPrice: '',
 };
@@ -32,6 +34,7 @@ const errorMessage = (caught: unknown): string =>
 const CataloguePage = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -45,12 +48,27 @@ const CataloguePage = () => {
   const [pendingDisable, setPendingDisable] = useState<Product | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const activeCategoryNames = categories.filter((item) => item.active).map((item) => item.name);
+
   const load = useCallback(async () => {
     try {
-      const { products: list } = productsResponseSchema.parse(
-        await apiFetch<unknown>('/api/products'),
+      const [productResult, categoryResult] = await Promise.all([
+        productsResponseSchema.parse(await apiFetch<unknown>('/api/products')),
+        categoriesResponseSchema.parse(await apiFetch<unknown>('/api/categories')),
+      ]);
+      setProducts(productResult.products);
+      setCategories(categoryResult.categories);
+      setForm((current) =>
+        current.category
+          ? current
+          : {
+              ...current,
+              category:
+                categoryResult.categories.find((item) => item.active)?.name ??
+                categoryResult.categories[0]?.name ??
+                '',
+            },
       );
-      setProducts(list);
       setListError(null);
     } catch (caught) {
       setListError(errorMessage(caught));
@@ -187,7 +205,7 @@ const CataloguePage = () => {
               }
               className="rounded-card mt-1 w-full border border-hairline px-3 py-2.5 text-sm outline-none focus:border-brand"
             >
-              {PRODUCT_CATEGORIES.map((item) => (
+              {activeCategoryNames.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
@@ -259,7 +277,7 @@ const CataloguePage = () => {
             className="rounded-card w-full max-w-xs border border-hairline px-3 py-2 text-sm outline-none focus:border-brand"
           />
           <div className="flex flex-wrap gap-2">
-            {['All', ...PRODUCT_CATEGORIES].map((item) => (
+            {['All', ...activeCategoryNames].map((item) => (
               <button
                 key={item}
                 type="button"

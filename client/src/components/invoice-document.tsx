@@ -3,19 +3,32 @@ import { Monogram, Wordmark } from '@/components/wordmark';
 import { business } from '@/lib/business';
 import { formatInvoiceDate, formatLineQuantity, formatMeasurement } from '@/lib/invoice';
 import { formatNaira } from '@/lib/money';
-import type { InvoiceItem, InvoiceSummary } from '@/lib/schemas';
+import type { Company, InvoiceItem, InvoiceSummary } from '@/lib/schemas';
 
 export type DocumentVariant = 'invoice' | 'receipt';
 
 type InvoiceDocumentProps = {
   invoice: InvoiceSummary & { items: InvoiceItem[] };
   variant?: DocumentVariant;
+  company?: Company;
 };
 
 const needsPayment = (invoice: InvoiceSummary): boolean =>
   !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
 
-export const InvoiceDocument = ({ invoice, variant = 'invoice' }: InvoiceDocumentProps) => {
+export const InvoiceDocument = ({
+  invoice,
+  variant = 'invoice',
+  company,
+}: InvoiceDocumentProps) => {
+  const profile = company ?? {
+    name: business.name,
+    tagline: business.tagline,
+    phone: business.phone,
+    email: business.email,
+    address: business.address,
+    bank: business.bank,
+  };
   const isReceipt = variant === 'receipt' || invoice.paymentStatus === 'PAID';
   const title = isReceipt ? 'Receipt' : 'Invoice';
   const showBank = !isReceipt && needsPayment(invoice);
@@ -36,9 +49,9 @@ export const InvoiceDocument = ({ invoice, variant = 'invoice' }: InvoiceDocumen
               markClassName="size-9 shrink-0 text-brand"
               textClassName="font-serif text-base tracking-[0.18em] uppercase sm:text-lg sm:tracking-[0.2em]"
             />
-            <p className="mt-3 text-sm text-muted">{business.tagline}</p>
+            <p className="mt-3 text-sm text-muted">{profile.tagline}</p>
             <p className="mt-1 text-sm text-muted">
-              {business.address} · {business.phone}
+              {profile.address} · {profile.phone}
             </p>
           </div>
           <div className="text-right">
@@ -149,15 +162,15 @@ export const InvoiceDocument = ({ invoice, variant = 'invoice' }: InvoiceDocumen
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Bank</dt>
-                <dd>{business.bank.bankName}</dd>
+                <dd>{profile.bank.bankName}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Account name</dt>
-                <dd className="text-right">{business.bank.accountName}</dd>
+                <dd className="text-right">{profile.bank.accountName}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted">Account number</dt>
-                <dd className="tabular font-medium">{business.bank.accountNumber}</dd>
+                <dd className="tabular font-medium">{profile.bank.accountNumber}</dd>
               </div>
             </dl>
             <p className="mt-3 text-xs text-muted">
@@ -169,7 +182,7 @@ export const InvoiceDocument = ({ invoice, variant = 'invoice' }: InvoiceDocumen
         <footer className="mt-14 text-xs text-muted">
           <p>{isReceipt ? 'Thank you for your payment.' : 'Thank you for your custom.'}</p>
           <p className="mt-1">
-            {business.email} · {business.phone}
+            {profile.email} · {profile.phone}
           </p>
         </footer>
       </div>

@@ -7,14 +7,6 @@ const nextConfig: NextConfig = {
   // Hides the floating Next.js badge that sits over the page in development.
   devIndicators: false,
   transpilePackages: ['@teegold/shared'],
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
-  },
 };
 
 export default nextConfig;

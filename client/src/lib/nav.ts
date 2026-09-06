@@ -27,9 +27,9 @@ export const navItems: NavItem[] = [
   { label: 'Quotations', href: '/quotations', ready: false, icon: QuotationsIcon },
   { label: 'Clients', href: '/clients', ready: true, icon: ClientsIcon },
   { label: 'Catalogue', href: '/catalogue', ready: true, adminOnly: true, icon: CatalogueIcon },
-  { label: 'Reports', href: '/reports', ready: false, icon: ReportsIcon },
+  { label: 'Reports', href: '/reports', ready: true, icon: ReportsIcon },
   { label: 'Staff', href: '/staff', ready: true, adminOnly: true, icon: StaffIcon },
-  { label: 'Settings', href: '/settings', ready: false, adminOnly: true, icon: SettingsIcon },
+  { label: 'Settings', href: '/settings', ready: true, adminOnly: true, icon: SettingsIcon },
 ];
 
 export const mobileTabs: NavItem[] = [

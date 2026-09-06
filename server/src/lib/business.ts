@@ -1,4 +1,4 @@
-/** Printed on invoices. Settings will own this later. */
+/** Fallback company copy when the API has not loaded settings yet. */
 export const company = {
   name: 'Teegold Interiors',
   tagline: 'Blinds, curtains and window treatments',

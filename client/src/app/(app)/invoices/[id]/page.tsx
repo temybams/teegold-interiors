@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { InvoiceForm } from '@/components/invoice-form';
+import { InvoicePayment } from '@/components/invoice-payment';
 import { InvoiceReceipt } from '@/components/invoice-receipt';
 import { InvoiceShare } from '@/components/invoice-share';
 import { InvoiceStatus } from '@/components/invoice-status';
@@ -174,6 +175,7 @@ const InvoiceDetailPage = () => {
 
       {!loading && invoice && (
         <div className="mt-8">
+          {!locked && <InvoicePayment invoice={invoice} onSaved={setInvoice} />}
           <InvoiceForm
             mode="edit"
             initial={invoice}

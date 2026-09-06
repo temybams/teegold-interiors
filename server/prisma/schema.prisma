@@ -1,4 +1,4 @@
-// Stage 4 adds invoices. Print, share, quotations and payments come next.
+// Stage 7 adds dashboard, reports, company settings and categories.
 
 generator client {
   provider = "prisma-client"
@@ -67,6 +67,17 @@ enum PricingType {
   PER_PIECE
   PER_SERVICE
   PER_ROLL
+}
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("product_categories")
 }
 
 model Product {
@@ -154,4 +165,20 @@ model InvoiceItem {
   lineTotal     Int
 
   @@map("invoice_items")
+}
+
+/// Single-row company profile used on invoices, receipts and the public site.
+model CompanySettings {
+  id            String   @id @default("default")
+  name          String
+  tagline       String
+  phone         String
+  email         String
+  address       String
+  bankName      String
+  accountName   String
+  accountNumber String
+  updatedAt     DateTime @updatedAt
+
+  @@map("company_settings")
 }

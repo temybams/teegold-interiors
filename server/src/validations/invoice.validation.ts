@@ -75,3 +75,13 @@ export const invoiceEmailBodySchema = z.object({
 });
 
 export type InvoiceEmailBody = z.infer<typeof invoiceEmailBodySchema>;
+
+export const invoicePaymentBodySchema = z.object({
+  amountPaid: z.coerce
+    .number({ invalid_type_error: 'Enter how much was paid' })
+    .int('Use whole Naira')
+    .nonnegative('Cannot be negative')
+    .max(100_000_000, 'That amount looks wrong'),
+});
+
+export type InvoicePaymentBody = z.infer<typeof invoicePaymentBodySchema>;

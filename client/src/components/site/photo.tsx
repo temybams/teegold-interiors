@@ -36,6 +36,7 @@ export const Photo = ({
           fill
           priority={priority}
           sizes={sizes}
+          quality={75}
           className={`object-cover ${motion === 'hero' ? 'site-photo-hero' : 'site-photo-zoom'}`}
           onError={() => setFailed(true)}
         />

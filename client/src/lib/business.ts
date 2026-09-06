@@ -2,13 +2,13 @@
 export const business = {
   name: 'Teegold Interiors',
   tagline: 'Blinds, curtains and window treatments',
-  phone: '0803 000 0000',
+  phone: '08137341838',
   /** International form without plus or spaces, which is what wa.me expects. */
-  whatsapp: '2348030000000',
+  whatsapp: '2348137341838',
   email: 'hello@teegoldinteriors.ng',
   area: 'Ado-Ekiti',
   address: 'GRA, Ado-Ekiti, Ekiti State',
-  /** Shown on unpaid / partial invoices. Settings will edit this later. */
+  /** Shown on unpaid / partial invoices until Settings loads from the API. */
   bank: {
     bankName: 'First Bank of Nigeria',
     accountName: 'Teegold Interiors',

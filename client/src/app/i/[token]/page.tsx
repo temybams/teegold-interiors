@@ -7,7 +7,7 @@ import { InvoiceDocument } from '@/components/invoice-document';
 import { InlineLoader } from '@/components/loader';
 import { Wordmark } from '@/components/wordmark';
 import { apiBaseUrl, downloadPublicPdf, isApiRequestError } from '@/lib/api';
-import { publicInvoiceResponseSchema, type PublicInvoiceView } from '@/lib/schemas';
+import { publicInvoiceResponseSchema, type Company, type PublicInvoiceView } from '@/lib/schemas';
 
 const errorMessage = (caught: unknown): string =>
   isApiRequestError(caught) ? caught.message : 'Could not load this invoice.';
@@ -17,6 +17,7 @@ const PublicInvoicePage = () => {
   const search = useSearchParams();
   const asReceipt = search.get('receipt') === '1';
   const [invoice, setInvoice] = useState<PublicInvoiceView | null>(null);
+  const [company, setCompany] = useState<Company | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +44,7 @@ const PublicInvoicePage = () => {
 
         if (!cancelled) {
           setInvoice(parsed.invoice);
+          setCompany(parsed.company);
           setError(null);
         }
       } catch (caught) {
@@ -107,7 +109,7 @@ const PublicInvoicePage = () => {
         {error && <p className="mx-auto mt-10 max-w-[720px] text-sm text-cancelled">{error}</p>}
         {invoice && (
           <div className="rounded-card border border-page-hairline px-4 py-8 sm:px-10 print:border-0 print:px-0 print:py-0">
-            <InvoiceDocument invoice={invoice} variant={variant} />
+            <InvoiceDocument invoice={invoice} variant={variant} company={company} />
           </div>
         )}
       </main>
