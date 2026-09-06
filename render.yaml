@@ -24,7 +24,8 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: "20.18.1"
+        # Prisma 7 requires ^20.19 || ^22.12 || >=24
+        value: "20.19.0"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
