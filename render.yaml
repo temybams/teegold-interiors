@@ -20,7 +20,7 @@ services:
     plan: free
     rootDir: server
     # --production=false: NODE_ENV=production would skip @types/node / typescript
-    buildCommand: yarn --cwd ../shared install --production=false && yarn --cwd ../shared build && yarn install --production=false && yarn build
+    buildCommand: yarn --cwd ../shared install && yarn --cwd ../shared build && yarn install --production=false && yarn build
     startCommand: yarn start:prod
     healthCheckPath: /api/health
     envVars:
