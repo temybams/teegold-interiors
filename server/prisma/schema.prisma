@@ -1,0 +1,248 @@
+// Quotations, client history, and install job status.
+
+generator client {
+  provider = "prisma-client"
+  // Prisma 7 generates the client into the project instead of node_modules.
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+/// PENDING   — invited, has not chosen a password yet, cannot sign in
+/// ACTIVE    — can sign in
+/// SUSPENDED — blocked by an admin, keeps every invoice they raised
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id    String @id @default(uuid())
+  name  String
+  /// Always stored lowercase so sign-in is not case sensitive.
+  email String @unique
+
+  /// Null until an invited person sets their own password, so an admin never knows it.
+  passwordHash String?
+  role         Role       @default(STAFF)
+  status       UserStatus @default(PENDING)
+  /// Optional. Used to open a WhatsApp chat with the invite link.
+  phone        String?
+
+  /// Only the hash is kept, so a copy of this table cannot be used to claim an invite.
+  inviteTokenHash String?   @unique
+  inviteExpiresAt DateTime?
+
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime?
+
+  passwordResetTokenHash String?   @unique
+  passwordResetExpiresAt DateTime?
+
+  invitedById String?
+  invitedBy   User?   @relation("Invitations", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitesSent User[]  @relation("Invitations")
+
+  activatedAt DateTime?
+  suspendedAt DateTime?
+
+  invoices   Invoice[]
+  quotations Quotation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum PricingType {
+  PER_M2
+  PER_PIECE
+  PER_SERVICE
+  PER_ROLL
+}
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("product_categories")
+}
+
+model Product {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  category       String
+  pricingType    PricingType
+  /// Whole Naira. The shared helpers do the money math.
+  unitPrice      Int
+  /// Disabled products stay on old invoices; they just leave the picker.
+  active         Boolean         @default(true)
+  invoiceItems   InvoiceItem[]
+  quotationItems QuotationItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("products")
+}
+
+model Customer {
+  id         String      @id @default(uuid())
+  name       String
+  phone      String
+  address    String
+  invoices   Invoice[]
+  quotations Quotation[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([phone])
+  @@index([name])
+  @@map("customers")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum QuotationStatus {
+  OPEN
+  CONVERTED
+  CANCELLED
+}
+
+/// Install / job progress after an invoice is raised.
+enum JobStatus {
+  NOT_STARTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model NumberSequence {
+  key   String @id
+  value Int
+
+  @@map("number_sequences")
+}
+
+model Quotation {
+  id          String          @id @default(uuid())
+  number      String          @unique
+  customerId  String
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  createdById String?
+  createdBy   User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  discount    Int             @default(0)
+  subtotal    Int
+  total       Int
+  status      QuotationStatus @default(OPEN)
+  publicToken String          @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  cancelledAt DateTime?
+  items       QuotationItem[]
+  invoice     Invoice?
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String      @id @default(uuid())
+  quotationId  String
+  quotation    Quotation   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameSnapshot String
+  pricingType  PricingType
+  width        Float?
+  height       Float?
+  area         Float?
+  quantity     Float
+  unitPrice    Int
+  lineTotal    Int
+
+  @@map("quotation_items")
+}
+
+model Invoice {
+  id             String         @id @default(uuid())
+  number         String         @unique
+  customerId     String
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  createdById    String?
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  quotationId    String?        @unique
+  quotation      Quotation?     @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  discount       Int            @default(0)
+  subtotal       Int
+  total          Int
+  amountPaid     Int            @default(0)
+  balance        Int
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  jobStatus      JobStatus      @default(NOT_STARTED)
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  /// Random token for the public share link in Stage 5.
+  publicToken    String         @unique
+  /// Frozen on first save. The dashboard clock is live; this is not.
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  cancelledAt    DateTime?
+  items          InvoiceItem[]
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([jobStatus])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id            String      @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameSnapshot  String
+  pricingType   PricingType
+  width         Float?
+  height        Float?
+  area          Float?
+  quantity      Float
+  unitPrice     Int
+  lineTotal     Int
+
+  @@map("invoice_items")
+}
+
+/// Single-row company profile used on invoices, receipts and the public site.
+model CompanySettings {
+  id            String   @id @default("default")
+  name          String
+  tagline       String
+  phone         String
+  email         String
+  address       String
+  bankName      String
+  accountName   String
+  accountNumber String
+  updatedAt     DateTime @updatedAt
+
+  @@map("company_settings")
+}
