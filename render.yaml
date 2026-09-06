@@ -23,6 +23,8 @@ services:
     startCommand: yarn start:prod
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
