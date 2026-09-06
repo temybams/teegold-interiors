@@ -110,14 +110,14 @@ export const Sidebar = ({ collapsed, onToggle }: SidebarProps) => {
             </p>
             <Link
               href="/"
-              className="mt-3 block text-xs text-white/60 underline underline-offset-4 hover:text-white"
+              className="mt-3 block text-sm text-white/70 underline underline-offset-4 hover:text-white"
             >
               View website
             </Link>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="mt-2 text-xs font-bold text-white underline underline-offset-4 hover:text-white/80"
+              className="mt-2 text-sm font-medium text-white underline underline-offset-4 hover:text-white/80"
             >
               Sign out
             </button>

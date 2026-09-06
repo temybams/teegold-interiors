@@ -11,7 +11,7 @@ import {
   calculateTotals,
   isMeasured,
 } from '@/lib/pricing';
-import { invoiceResponseSchema, type Customer, type Invoice, type Product } from '@/lib/schemas';
+import { invoiceResponseSchema, quotationResponseSchema, type Customer, type Invoice, type Product, type Quotation } from '@/lib/schemas';
 
 type DraftLine = {
   key: string;
@@ -40,8 +40,10 @@ const newLine = (): DraftLine => ({
   quantity: '1',
 });
 
-const linesFromInvoice = (invoice: Invoice): DraftLine[] =>
-  invoice.items.map((item) => ({
+type DocumentLike = Invoice | Quotation;
+
+const linesFromDocument = (document: DocumentLike): DraftLine[] =>
+  document.items.map((item) => ({
     key: item.id,
     productId: item.productId ?? '',
     width: item.width != null ? String(item.width) : '',
@@ -58,16 +60,18 @@ const errorMessage = (caught: unknown): string =>
 
 type InvoiceFormProps = {
   mode: 'create' | 'edit';
+  kind?: 'invoice' | 'quotation';
   customers: Customer[];
   products: Product[];
-  initial?: Invoice;
+  initial?: DocumentLike;
   locked?: boolean;
   lockReason?: string;
-  onSaved: (invoice: Invoice) => void;
+  onSaved: (document: DocumentLike) => void;
 };
 
 export const InvoiceForm = ({
   mode,
+  kind = 'invoice',
   customers,
   products,
   initial,
@@ -75,16 +79,19 @@ export const InvoiceForm = ({
   lockReason,
   onSaved,
 }: InvoiceFormProps) => {
+  const isQuotation = kind === 'quotation';
   const [customerMode, setCustomerMode] = useState<CustomerMode>(
     initial || customers.length > 0 ? 'existing' : 'new',
   );
   const [customerId, setCustomerId] = useState(initial?.customer.id ?? '');
   const [newCustomer, setNewCustomer] = useState<NewCustomer>(emptyCustomer);
   const [lines, setLines] = useState<DraftLine[]>(
-    initial ? linesFromInvoice(initial) : [newLine()],
+    initial ? linesFromDocument(initial) : [newLine()],
   );
   const [discount, setDiscount] = useState(initial ? String(initial.discount) : '0');
-  const [paid, setPaid] = useState(initial?.paymentStatus === 'PAID');
+  const [paid, setPaid] = useState(
+    initial && 'paymentStatus' in initial ? initial.paymentStatus === 'PAID' : false,
+  );
   const [issues, setIssues] = useState<ApiIssue[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -174,18 +181,23 @@ export const InvoiceForm = ({
         ? { customerId: customerId || undefined }
         : { customer: newCustomer }),
       discount: Number(discount) || 0,
-      paid,
+      ...(isQuotation ? {} : { paid }),
       items,
     };
 
     try {
-      const path = mode === 'edit' && initial ? `/api/invoices/${initial.id}` : '/api/invoices';
+      const base = isQuotation ? '/api/quotations' : '/api/invoices';
+      const path = mode === 'edit' && initial ? `${base}/${initial.id}` : base;
       const payload =
         mode === 'edit'
           ? await apiPatch<unknown>(path, body)
           : await apiPost<unknown>(path, body);
-      const { invoice } = invoiceResponseSchema.parse(payload);
-      onSaved(invoice);
+
+      if (isQuotation) {
+        onSaved(quotationResponseSchema.parse(payload).quotation);
+      } else {
+        onSaved(invoiceResponseSchema.parse(payload).invoice);
+      }
     } catch (caught) {
       if (isApiRequestError(caught)) {
         setIssues(caught.issues);
@@ -530,15 +542,17 @@ export const InvoiceForm = ({
             <span className="font-medium">Total</span>
             <span className="tabular text-lg font-semibold">{formatNaira(totals.total)}</span>
           </div>
-          <label className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              checked={paid}
-              disabled={locked}
-              onChange={(event) => setPaid(event.target.checked)}
-            />
-            This invoice is paid
-          </label>
+          {!isQuotation && (
+            <label className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                checked={paid}
+                disabled={locked}
+                onChange={(event) => setPaid(event.target.checked)}
+              />
+              This invoice is paid
+            </label>
+          )}
         </div>
 
         {formError && <p className="mt-4 text-sm text-cancelled">{formError}</p>}
@@ -550,7 +564,13 @@ export const InvoiceForm = ({
               disabled={saving}
               className="rounded-card bg-brand px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-60"
             >
-              {saving ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Save invoice'}
+              {saving
+                ? 'Saving…'
+                : mode === 'edit'
+                  ? 'Save changes'
+                  : isQuotation
+                    ? 'Save quotation'
+                    : 'Save invoice'}
             </button>
           </div>
         )}

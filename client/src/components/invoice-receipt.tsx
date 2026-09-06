@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { apiDownload, apiFetch, isApiRequestError } from '@/lib/api';
+import { receiptShareText } from '@/lib/invoice';
 import { formatNaira } from '@/lib/money';
 import { whatsappUrl } from '@/lib/phone';
 import { invoiceShareSchema, type Invoice } from '@/lib/schemas';
@@ -53,7 +54,12 @@ export const InvoiceReceipt = ({ invoice, onClose }: InvoiceReceiptProps) => {
 
   const receiptUrl = url ? `${url}?receipt=1` : null;
   const message = receiptUrl
-    ? `Hello ${invoice.customer.name.split(/\s+/)[0] ?? invoice.customer.name}, here is your Teegold Interiors receipt for ${invoice.number}. Amount paid: ${formatNaira(invoice.amountPaid || invoice.total)}. ${receiptUrl}`
+    ? receiptShareText({
+        customerName: invoice.customer.name,
+        number: invoice.number,
+        amountPaidFormatted: formatNaira(invoice.amountPaid || invoice.total),
+        url: receiptUrl,
+      })
     : '';
   const chat = receiptUrl ? whatsappUrl(phone, message) : null;
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';

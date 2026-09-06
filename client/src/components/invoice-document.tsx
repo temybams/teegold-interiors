@@ -1,19 +1,41 @@
 import { InvoiceStatus } from '@/components/invoice-status';
+import { QuotationStatus } from '@/components/quotation-status';
 import { Monogram, Wordmark } from '@/components/wordmark';
 import { business } from '@/lib/business';
 import { formatInvoiceDate, formatLineQuantity, formatMeasurement } from '@/lib/invoice';
 import { formatNaira } from '@/lib/money';
-import type { Company, InvoiceItem, InvoiceSummary } from '@/lib/schemas';
+import type {
+  Company,
+  InvoiceItem,
+  InvoiceSummary,
+  QuotationSummary,
+} from '@/lib/schemas';
 
-export type DocumentVariant = 'invoice' | 'receipt';
+export type DocumentVariant = 'invoice' | 'receipt' | 'quotation';
+
+type DocumentBase = {
+  number: string;
+  customer: InvoiceSummary['customer'];
+  createdBy?: InvoiceSummary['createdBy'];
+  discount: number;
+  subtotal: number;
+  total: number;
+  amountPaid?: number;
+  balance?: number;
+  paymentStatus?: InvoiceSummary['paymentStatus'];
+  status?: QuotationSummary['status'];
+  cancelledAt: string | null;
+  createdAt: string;
+  items: InvoiceItem[];
+};
 
 type InvoiceDocumentProps = {
-  invoice: InvoiceSummary & { items: InvoiceItem[] };
+  invoice: DocumentBase;
   variant?: DocumentVariant;
   company?: Company;
 };
 
-const needsPayment = (invoice: InvoiceSummary): boolean =>
+const needsPayment = (invoice: DocumentBase): boolean =>
   !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
 
 export const InvoiceDocument = ({
@@ -29,9 +51,13 @@ export const InvoiceDocument = ({
     address: business.address,
     bank: business.bank,
   };
-  const isReceipt = variant === 'receipt' || invoice.paymentStatus === 'PAID';
-  const title = isReceipt ? 'Receipt' : 'Invoice';
-  const showBank = !isReceipt && needsPayment(invoice);
+  const isQuotation = variant === 'quotation';
+  const isReceipt =
+    !isQuotation && (variant === 'receipt' || invoice.paymentStatus === 'PAID');
+  const title = isQuotation ? 'Quotation' : isReceipt ? 'Receipt' : 'Invoice';
+  const showBank = !isQuotation && !isReceipt && needsPayment(invoice);
+  const amountPaid = invoice.amountPaid ?? 0;
+  const balance = invoice.balance ?? invoice.total;
 
   return (
     <article className="invoice-sheet relative mx-auto w-full max-w-[720px] overflow-hidden bg-white text-ink">
@@ -57,7 +83,13 @@ export const InvoiceDocument = ({
           <div className="text-right">
             <p className="font-serif text-3xl">{title}</p>
             <div className="mt-2 flex justify-end">
-              <InvoiceStatus invoice={invoice} />
+              {isQuotation && invoice.status ? (
+                <QuotationStatus quotation={{ status: invoice.status, cancelledAt: invoice.cancelledAt }} />
+              ) : invoice.paymentStatus ? (
+                <InvoiceStatus
+                  invoice={{ paymentStatus: invoice.paymentStatus, cancelledAt: invoice.cancelledAt }}
+                />
+              ) : null}
             </div>
           </div>
         </header>
@@ -71,7 +103,7 @@ export const InvoiceDocument = ({
           </div>
           <div className="sm:text-right">
             <p className="text-xs tracking-[0.16em] text-muted uppercase">
-              {isReceipt ? 'Receipt for' : 'Invoice'}
+              {isQuotation ? 'Quotation' : isReceipt ? 'Receipt for' : 'Invoice'}
             </p>
             <p className="mt-2 font-medium">{invoice.number}</p>
             <p className="mt-1 text-sm text-muted">{formatInvoiceDate(invoice.createdAt)}</p>
@@ -136,18 +168,18 @@ export const InvoiceDocument = ({
               {isReceipt ? 'Amount paid' : 'Total'}
             </span>
             <span className="tabular font-serif text-3xl">
-              {formatNaira(isReceipt ? invoice.amountPaid || invoice.total : invoice.total)}
+              {formatNaira(isReceipt ? amountPaid || invoice.total : invoice.total)}
             </span>
           </div>
-          {!isReceipt && (invoice.amountPaid > 0 || invoice.balance > 0) && (
+          {!isQuotation && !isReceipt && (amountPaid > 0 || balance > 0) && (
             <>
               <div className="flex justify-between pt-1">
                 <span className="text-muted">Paid</span>
-                <span className="tabular">{formatNaira(invoice.amountPaid)}</span>
+                <span className="tabular">{formatNaira(amountPaid)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">Balance</span>
-                <span className="tabular">{formatNaira(invoice.balance)}</span>
+                <span className="tabular">{formatNaira(balance)}</span>
               </div>
             </>
           )}
@@ -180,7 +212,13 @@ export const InvoiceDocument = ({
         )}
 
         <footer className="mt-14 text-xs text-muted">
-          <p>{isReceipt ? 'Thank you for your payment.' : 'Thank you for your custom.'}</p>
+          <p>
+            {isQuotation
+              ? 'This quotation is valid subject to confirmation.'
+              : isReceipt
+                ? 'Thank you for your payment.'
+                : 'Thank you for your custom.'}
+          </p>
           <p className="mt-1">
             {profile.email} · {profile.phone}
           </p>

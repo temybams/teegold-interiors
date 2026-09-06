@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 
 import {
   createCustomer,
-  getCustomer,
+  getCustomerDetail,
   listCustomers,
   updateCustomer,
 } from '../services/customer.service';
@@ -18,7 +18,7 @@ export const getCustomers: RequestHandler = asyncHandler(async (req, res) => {
 export const getCustomerById: RequestHandler = asyncHandler(async (req, res) => {
   const { id } = req.params as { id: string };
 
-  res.json({ customer: await getCustomer(id) });
+  res.json({ customer: await getCustomerDetail(id) });
 });
 
 export const postCustomer: RequestHandler = asyncHandler(async (req, res) => {

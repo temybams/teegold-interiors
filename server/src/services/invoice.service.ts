@@ -1,10 +1,18 @@
 import { randomBytes } from 'node:crypto';
 
-import type { Invoice, InvoiceItem, PaymentStatus, Prisma, Product } from '../generated/prisma/client';
+import type {
+  Invoice,
+  InvoiceItem,
+  JobStatus,
+  PaymentStatus,
+  Prisma,
+  Product,
+} from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import { forbidden, notFound, unprocessable } from '../utils/http-error';
 import { calculateLineTotal, calculateQuantity, calculateTotals, isMeasured } from '../utils/pricing';
 import type { InvoiceBody, InvoiceListQuery } from '../validations/invoice.validation';
+import type { JobListQuery, JobStatusBody } from '../validations/job.validation';
 import { createCustomer, type PublicCustomer } from './customer.service';
 
 export type PublicInvoiceItem = {
@@ -27,12 +35,16 @@ export type PublicInvoice = {
   number: string;
   customer: PublicInvoiceCustomer;
   createdBy: { id: string; name: string } | null;
+  quotationId: string | null;
   discount: number;
   subtotal: number;
   total: number;
   amountPaid: number;
   balance: number;
   paymentStatus: PaymentStatus;
+  jobStatus: JobStatus;
+  scheduledAt: Date | null;
+  completedAt: Date | null;
   publicToken: string;
   createdAt: Date;
   updatedAt: Date;
@@ -72,12 +84,16 @@ const toPublicInvoice = (invoice: InvoiceRecord): PublicInvoice => ({
   number: invoice.number,
   customer: invoice.customer,
   createdBy: invoice.createdBy,
+  quotationId: invoice.quotationId,
   discount: invoice.discount,
   subtotal: invoice.subtotal,
   total: invoice.total,
   amountPaid: invoice.amountPaid,
   balance: invoice.balance,
   paymentStatus: invoice.paymentStatus,
+  jobStatus: invoice.jobStatus,
+  scheduledAt: invoice.scheduledAt,
+  completedAt: invoice.completedAt,
   publicToken: invoice.publicToken,
   createdAt: invoice.createdAt,
   updatedAt: invoice.updatedAt,
@@ -87,22 +103,8 @@ const toPublicInvoice = (invoice: InvoiceRecord): PublicInvoice => ({
 
 const toPublicSummary = (invoice: InvoiceRecord): PublicInvoiceSummary => {
   const full = toPublicInvoice(invoice);
-  return {
-    id: full.id,
-    number: full.number,
-    customer: full.customer,
-    createdBy: full.createdBy,
-    discount: full.discount,
-    subtotal: full.subtotal,
-    total: full.total,
-    amountPaid: full.amountPaid,
-    balance: full.balance,
-    paymentStatus: full.paymentStatus,
-    publicToken: full.publicToken,
-    createdAt: full.createdAt,
-    updatedAt: full.updatedAt,
-    cancelledAt: full.cancelledAt,
-  };
+  const { items: _items, ...summary } = full;
+  return summary;
 };
 
 const nextInvoiceNumber = async (tx: Prisma.TransactionClient): Promise<string> => {
@@ -460,4 +462,70 @@ export const cancelInvoice = async (id: string, role: 'ADMIN' | 'STAFF'): Promis
   });
 
   return toPublicInvoice(invoice as InvoiceRecord);
+};
+
+export const updateJobStatus = async (id: string, body: JobStatusBody): Promise<PublicInvoice> => {
+  const current = await prisma.invoice.findUnique({ where: { id } });
+
+  if (!current) {
+    throw notFound('Invoice not found');
+  }
+
+  if (current.cancelledAt) {
+    throw forbidden('A cancelled invoice has no install job');
+  }
+
+  const scheduledAt =
+    body.jobStatus === 'SCHEDULED'
+      ? (body.scheduledAt ?? current.scheduledAt ?? new Date())
+      : body.scheduledAt === null
+        ? null
+        : body.scheduledAt === undefined
+          ? current.scheduledAt
+          : body.scheduledAt;
+
+  const completedAt = body.jobStatus === 'COMPLETED' ? new Date() : null;
+
+  const invoice = await prisma.invoice.update({
+    where: { id },
+    data: {
+      jobStatus: body.jobStatus,
+      scheduledAt,
+      completedAt,
+    },
+    include: invoiceInclude,
+  });
+
+  return toPublicInvoice(invoice as InvoiceRecord);
+};
+
+export const listJobs = async (
+  query: JobListQuery,
+): Promise<{ jobs: PublicInvoiceSummary[]; page: number; limit: number; total: number }> => {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const status = query.status ?? 'all';
+
+  const where: Prisma.InvoiceWhereInput = {
+    cancelledAt: null,
+    ...(status === 'all' ? {} : { jobStatus: status }),
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      include: invoiceInclude,
+      orderBy: [{ jobStatus: 'asc' }, { scheduledAt: 'asc' }, { createdAt: 'desc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+
+  return {
+    jobs: rows.map((row) => toPublicSummary(row as InvoiceRecord)),
+    page,
+    limit,
+    total,
+  };
 };

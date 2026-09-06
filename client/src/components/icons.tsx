@@ -91,6 +91,15 @@ export const QuotationsIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+/** Clipboard with a small wrench — install jobs. */
+export const JobsIcon = ({ className }: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden className={className} {...stroke}>
+    <rect x="6.5" y="3.5" width="11" height="17" rx="1.2" />
+    <path d="M9.5 3.5v1.8h5V3.5M9.5 10h5M9.5 13.5h5M9.5 17h3" />
+    <path d="M16.8 14.2a1.6 1.6 0 0 0 2.2 2.2l1.5 1.5-1 1-1.5-1.5a1.6 1.6 0 0 0-2.2-2.2z" />
+  </svg>
+);
+
 export const ClientsIcon = ({ className }: IconProps) => (
   <svg viewBox="0 0 24 24" aria-hidden className={className} {...stroke}>
     <circle cx="9" cy="8" r="2.25" />

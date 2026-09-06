@@ -13,18 +13,34 @@ import { InvoiceStatus } from '@/components/invoice-status';
 import { InlineLoader } from '@/components/loader';
 import { apiDownload, apiFetch, apiPatch, isApiRequestError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { formatInvoiceDate, publicInvoicePath } from '@/lib/invoice';
+import { formatInvoiceDate, jobStatusLabel, publicInvoicePath } from '@/lib/invoice';
 import {
+  JOB_STATUSES,
   customersResponseSchema,
   invoiceResponseSchema,
   productsResponseSchema,
   type Customer,
   type Invoice,
+  type JobStatus,
   type Product,
 } from '@/lib/schemas';
 
 const errorMessage = (caught: unknown): string =>
   isApiRequestError(caught) ? caught.message : 'Could not reach the server. Is it running?';
+
+const toDatetimeLocal = (iso: string | null | undefined): string => {
+  if (!iso) {
+    return '';
+  }
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 const InvoiceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +54,7 @@ const InvoiceDetailPage = () => {
   const [cancelling, setCancelling] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [savingJob, setSavingJob] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -79,6 +96,26 @@ const InvoiceDetailPage = () => {
       setError(errorMessage(caught));
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const updateJob = async (patch: { jobStatus: JobStatus; scheduledAt?: string | null }) => {
+    if (!invoice || invoice.cancelledAt) {
+      return;
+    }
+
+    setSavingJob(true);
+
+    try {
+      const { invoice: next } = invoiceResponseSchema.parse(
+        await apiPatch<unknown>(`/api/jobs/${invoice.id}`, patch),
+      );
+      setInvoice(next);
+      setError(null);
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setSavingJob(false);
     }
   };
 
@@ -174,7 +211,48 @@ const InvoiceDetailPage = () => {
       {error && <p className="mt-6 text-sm text-cancelled">{error}</p>}
 
       {!loading && invoice && (
-        <div className="mt-8">
+        <div className="mt-8 space-y-6">
+          {!invoice.cancelledAt && (
+            <section className="rounded-card border border-hairline bg-surface p-4 sm:p-6">
+              <h2 className="text-xs tracking-widest text-muted uppercase">Install job</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm">
+                  Status
+                  <select
+                    value={invoice.jobStatus}
+                    disabled={savingJob}
+                    onChange={(event) =>
+                      void updateJob({ jobStatus: event.target.value as JobStatus })
+                    }
+                    className="rounded-card mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand disabled:opacity-60"
+                  >
+                    {JOB_STATUSES.map((status) => (
+                      <option key={status} value={status}>
+                        {jobStatusLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  Scheduled
+                  <input
+                    type="datetime-local"
+                    value={toDatetimeLocal(invoice.scheduledAt)}
+                    disabled={savingJob}
+                    onChange={(event) =>
+                      void updateJob({
+                        jobStatus:
+                          invoice.jobStatus === 'NOT_STARTED' ? 'SCHEDULED' : invoice.jobStatus,
+                        scheduledAt: event.target.value || null,
+                      })
+                    }
+                    className="rounded-card mt-1 w-full border border-hairline bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand disabled:opacity-60"
+                  />
+                </label>
+              </div>
+            </section>
+          )}
+
           {!locked && <InvoicePayment invoice={invoice} onSaved={setInvoice} />}
           <InvoiceForm
             mode="edit"
@@ -183,7 +261,7 @@ const InvoiceDetailPage = () => {
             products={products}
             locked={locked}
             lockReason={lockReason}
-            onSaved={setInvoice}
+            onSaved={(document) => setInvoice(document as Invoice)}
           />
         </div>
       )}

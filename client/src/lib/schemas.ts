@@ -124,6 +124,14 @@ export const PAYMENT_STATUSES = ['UNPAID', 'PARTIAL', 'PAID'] as const;
 
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
+export const JOB_STATUSES = ['NOT_STARTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] as const;
+
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
+export const QUOTATION_STATUSES = ['OPEN', 'CONVERTED', 'CANCELLED'] as const;
+
+export type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+
 export const invoiceCustomerSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -151,12 +159,16 @@ export const invoiceSummarySchema = z.object({
   number: z.string(),
   customer: invoiceCustomerSchema,
   createdBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  quotationId: z.string().nullable().optional(),
   discount: z.number(),
   subtotal: z.number(),
   total: z.number(),
   amountPaid: z.number(),
   balance: z.number(),
   paymentStatus: z.enum(PAYMENT_STATUSES),
+  jobStatus: z.enum(JOB_STATUSES).optional().default('NOT_STARTED'),
+  scheduledAt: z.string().nullable().optional(),
+  completedAt: z.string().nullable().optional(),
   publicToken: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -170,6 +182,95 @@ export const invoiceSchema = invoiceSummarySchema.extend({
 });
 
 export type Invoice = z.infer<typeof invoiceSchema>;
+
+export const quotationSummarySchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  customer: invoiceCustomerSchema,
+  createdBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
+  discount: z.number(),
+  subtotal: z.number(),
+  total: z.number(),
+  status: z.enum(QUOTATION_STATUSES),
+  publicToken: z.string().optional(),
+  invoiceId: z.string().nullable().optional(),
+  invoiceNumber: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  cancelledAt: z.string().nullable(),
+});
+
+export type QuotationSummary = z.infer<typeof quotationSummarySchema>;
+
+export const quotationSchema = quotationSummarySchema.extend({
+  items: z.array(invoiceItemSchema),
+});
+
+export type Quotation = z.infer<typeof quotationSchema>;
+
+export const quotationCountsSchema = z.object({
+  all: z.number(),
+  open: z.number(),
+  converted: z.number(),
+  cancelled: z.number(),
+});
+
+export const quotationsResponseSchema = z.object({
+  quotations: z.array(quotationSummarySchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+  counts: quotationCountsSchema,
+});
+
+export const quotationResponseSchema = z.object({
+  quotation: quotationSchema,
+});
+
+export const quotationConvertResponseSchema = z.object({
+  quotation: quotationSchema,
+  invoice: invoiceSchema,
+});
+
+export const jobsResponseSchema = z.object({
+  jobs: z.array(invoiceSummarySchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
+});
+
+export const customerDetailSchema = customerSchema.extend({
+  quotationCount: z.number().optional().default(0),
+  invoices: z.array(
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      total: z.number(),
+      amountPaid: z.number(),
+      balance: z.number(),
+      paymentStatus: z.enum(PAYMENT_STATUSES),
+      jobStatus: z.enum(JOB_STATUSES),
+      createdAt: z.string(),
+      cancelledAt: z.string().nullable(),
+    }),
+  ),
+  quotations: z.array(
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      total: z.number(),
+      status: z.enum(QUOTATION_STATUSES),
+      createdAt: z.string(),
+      cancelledAt: z.string().nullable(),
+    }),
+  ),
+});
+
+export type CustomerDetail = z.infer<typeof customerDetailSchema>;
+
+export const customerDetailResponseSchema = z.object({
+  customer: customerDetailSchema,
+});
 
 export const invoiceCountsSchema = z.object({
   all: z.number(),
@@ -243,6 +344,11 @@ export type Company = z.infer<typeof companySchema>;
 
 export const companyResponseSchema = z.object({
   company: companySchema,
+});
+
+export const publicQuotationResponseSchema = z.object({
+  company: companySchema.optional(),
+  quotation: quotationSchema,
 });
 
 export const categorySchema = z.object({

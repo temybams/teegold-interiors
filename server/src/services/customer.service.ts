@@ -81,6 +81,76 @@ export const getCustomer = async (id: string): Promise<PublicCustomer> => {
   return toPublicCustomer(customer, stats.get(id));
 };
 
+export type CustomerHistoryInvoice = {
+  id: string;
+  number: string;
+  total: number;
+  amountPaid: number;
+  balance: number;
+  paymentStatus: string;
+  jobStatus: string;
+  createdAt: Date;
+  cancelledAt: Date | null;
+};
+
+export type CustomerHistoryQuotation = {
+  id: string;
+  number: string;
+  total: number;
+  status: string;
+  createdAt: Date;
+  cancelledAt: Date | null;
+};
+
+export type CustomerDetail = PublicCustomer & {
+  quotationCount: number;
+  invoices: CustomerHistoryInvoice[];
+  quotations: CustomerHistoryQuotation[];
+};
+
+export const getCustomerDetail = async (id: string): Promise<CustomerDetail> => {
+  const customer = await getCustomer(id);
+
+  const [invoices, quotations] = await Promise.all([
+    prisma.invoice.findMany({
+      where: { customerId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        number: true,
+        total: true,
+        amountPaid: true,
+        balance: true,
+        paymentStatus: true,
+        jobStatus: true,
+        createdAt: true,
+        cancelledAt: true,
+      },
+    }),
+    prisma.quotation.findMany({
+      where: { customerId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        number: true,
+        total: true,
+        status: true,
+        createdAt: true,
+        cancelledAt: true,
+      },
+    }),
+  ]);
+
+  return {
+    ...customer,
+    quotationCount: quotations.length,
+    invoices,
+    quotations,
+  };
+};
+
 export type CustomerInput = {
   name: string;
   phone: string;

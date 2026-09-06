@@ -9,10 +9,18 @@ import { invoiceEmailResponseSchema, invoiceShareSchema } from '@/lib/schemas';
 type InvoiceShareProps = {
   invoiceId: string;
   invoiceNumber: string;
+  /** Defaults to invoices. Use quotations for quote share (no email). */
+  basePath?: '/api/invoices' | '/api/quotations';
   onClose: () => void;
 };
 
-export const InvoiceShare = ({ invoiceId, invoiceNumber, onClose }: InvoiceShareProps) => {
+export const InvoiceShare = ({
+  invoiceId,
+  invoiceNumber,
+  basePath = '/api/invoices',
+  onClose,
+}: InvoiceShareProps) => {
+  const isQuotation = basePath === '/api/quotations';
   const [url, setUrl] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [phone, setPhone] = useState('');
@@ -29,7 +37,7 @@ export const InvoiceShare = ({ invoiceId, invoiceNumber, onClose }: InvoiceShare
     const load = async () => {
       try {
         const share = invoiceShareSchema.parse(
-          await apiFetch<unknown>(`/api/invoices/${invoiceId}/share`),
+          await apiFetch<unknown>(`${basePath}/${invoiceId}/share`),
         );
 
         if (!cancelled) {
@@ -54,7 +62,7 @@ export const InvoiceShare = ({ invoiceId, invoiceNumber, onClose }: InvoiceShare
     return () => {
       cancelled = true;
     };
-  }, [invoiceId]);
+  }, [basePath, invoiceId]);
 
   const chat = url ? whatsappUrl(phone, message) : null;
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
@@ -84,7 +92,7 @@ export const InvoiceShare = ({ invoiceId, invoiceNumber, onClose }: InvoiceShare
 
     try {
       const result = invoiceEmailResponseSchema.parse(
-        await apiPost<unknown>(`/api/invoices/${invoiceId}/email`, { email }),
+        await apiPost<unknown>(`${basePath}/${invoiceId}/email`, { email }),
       );
       setStatus(result.message);
     } catch (caught) {
@@ -144,36 +152,38 @@ export const InvoiceShare = ({ invoiceId, invoiceNumber, onClose }: InvoiceShare
               onClick={() => void copyLink()}
               className="rounded-card border border-hairline px-4 py-2.5 text-sm hover:border-brand"
             >
-              {copied ? 'Copied' : 'Copy invoice link'}
+              {copied ? 'Copied' : isQuotation ? 'Copy quotation link' : 'Copy invoice link'}
             </button>
 
             <button
               type="button"
-              onClick={() => void apiDownload(`/api/invoices/${invoiceId}/pdf`, `${invoiceNumber}.pdf`)}
+              onClick={() => void apiDownload(`${basePath}/${invoiceId}/pdf`, `${invoiceNumber}.pdf`)}
               className="rounded-card border border-hairline px-4 py-2.5 text-sm hover:border-brand"
             >
               Download PDF
             </button>
 
-            <form onSubmit={sendEmail} className="border-t border-hairline pt-3">
-              <label className="block text-sm">
-                Email
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="client@email.com"
-                  className="rounded-card mt-1 w-full border border-hairline px-3 py-2.5 text-sm outline-none focus:border-brand"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={sending}
-                className="rounded-card mt-3 w-full border border-hairline px-4 py-2.5 text-sm hover:border-brand disabled:opacity-60"
-              >
-                {sending ? 'Sending…' : 'Email PDF'}
-              </button>
-            </form>
+            {!isQuotation && (
+              <form onSubmit={sendEmail} className="border-t border-hairline pt-3">
+                <label className="block text-sm">
+                  Email
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="client@email.com"
+                    className="rounded-card mt-1 w-full border border-hairline px-3 py-2.5 text-sm outline-none focus:border-brand"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="rounded-card mt-3 w-full border border-hairline px-4 py-2.5 text-sm hover:border-brand disabled:opacity-60"
+                >
+                  {sending ? 'Sending…' : 'Email PDF'}
+                </button>
+              </form>
+            )}
 
             <p className="break-all text-xs text-muted">{url}</p>
           </div>

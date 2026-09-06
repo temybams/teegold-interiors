@@ -1,4 +1,4 @@
-// Stage 7 adds dashboard, reports, company settings and categories.
+// Quotations, client history, and install job status.
 
 generator client {
   provider = "prisma-client"
@@ -54,7 +54,8 @@ model User {
   activatedAt DateTime?
   suspendedAt DateTime?
 
-  invoices Invoice[]
+  invoices   Invoice[]
+  quotations Quotation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,29 +82,31 @@ model ProductCategory {
 }
 
 model Product {
-  id          String      @id @default(uuid())
-  name        String      @unique
-  category    String
-  pricingType PricingType
+  id             String          @id @default(uuid())
+  name           String          @unique
+  category       String
+  pricingType    PricingType
   /// Whole Naira. The shared helpers do the money math.
-  unitPrice   Int
+  unitPrice      Int
   /// Disabled products stay on old invoices; they just leave the picker.
-  active      Boolean     @default(true)
-  invoiceItems InvoiceItem[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  active         Boolean         @default(true)
+  invoiceItems   InvoiceItem[]
+  quotationItems QuotationItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@map("products")
 }
 
 model Customer {
-  id        String    @id @default(uuid())
-  name      String
-  phone     String
-  address   String
-  invoices  Invoice[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String      @id @default(uuid())
+  name       String
+  phone      String
+  address    String
+  invoices   Invoice[]
+  quotations Quotation[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@index([phone])
   @@index([name])
@@ -116,6 +119,20 @@ enum PaymentStatus {
   PAID
 }
 
+enum QuotationStatus {
+  OPEN
+  CONVERTED
+  CANCELLED
+}
+
+/// Install / job progress after an invoice is raised.
+enum JobStatus {
+  NOT_STARTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
 model NumberSequence {
   key   String @id
   value Int
@@ -123,29 +140,76 @@ model NumberSequence {
   @@map("number_sequences")
 }
 
+model Quotation {
+  id          String          @id @default(uuid())
+  number      String          @unique
+  customerId  String
+  customer    Customer        @relation(fields: [customerId], references: [id])
+  createdById String?
+  createdBy   User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  discount    Int             @default(0)
+  subtotal    Int
+  total       Int
+  status      QuotationStatus @default(OPEN)
+  publicToken String          @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  cancelledAt DateTime?
+  items       QuotationItem[]
+  invoice     Invoice?
+
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String      @id @default(uuid())
+  quotationId  String
+  quotation    Quotation   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameSnapshot String
+  pricingType  PricingType
+  width        Float?
+  height       Float?
+  area         Float?
+  quantity     Float
+  unitPrice    Int
+  lineTotal    Int
+
+  @@map("quotation_items")
+}
+
 model Invoice {
-  id             String        @id @default(uuid())
-  number         String        @unique
+  id             String         @id @default(uuid())
+  number         String         @unique
   customerId     String
-  customer       Customer      @relation(fields: [customerId], references: [id])
+  customer       Customer       @relation(fields: [customerId], references: [id])
   createdById    String?
-  createdBy      User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  discount       Int           @default(0)
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  quotationId    String?        @unique
+  quotation      Quotation?     @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  discount       Int            @default(0)
   subtotal       Int
   total          Int
-  amountPaid     Int           @default(0)
+  amountPaid     Int            @default(0)
   balance        Int
-  paymentStatus  PaymentStatus @default(UNPAID)
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  jobStatus      JobStatus      @default(NOT_STARTED)
+  scheduledAt    DateTime?
+  completedAt    DateTime?
   /// Random token for the public share link in Stage 5.
-  publicToken    String        @unique
+  publicToken    String         @unique
   /// Frozen on first save. The dashboard clock is live; this is not.
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   cancelledAt    DateTime?
   items          InvoiceItem[]
 
   @@index([customerId])
   @@index([createdAt])
+  @@index([jobStatus])
   @@map("invoices")
 }
 

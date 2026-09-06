@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { TableSkeleton } from '@/components/loader';
@@ -212,7 +213,12 @@ const ClientsPage = () => {
                 <li key={customer.id} className="px-4 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium">{customer.name}</p>
+                      <Link
+                        href={`/clients/${customer.id}`}
+                        className="font-medium text-brand underline underline-offset-4"
+                      >
+                        {customer.name}
+                      </Link>
                       <p className="mt-1 text-sm text-muted">{customer.phone}</p>
                       <p className="mt-0.5 text-sm">{customer.address}</p>
                       <p className="tabular mt-2 text-xs text-muted">
@@ -246,7 +252,14 @@ const ClientsPage = () => {
                 <tbody>
                   {customers.map((customer) => (
                     <tr key={customer.id} className="border-t border-hairline">
-                      <td className="px-6 py-3">{customer.name}</td>
+                      <td className="px-6 py-3">
+                        <Link
+                          href={`/clients/${customer.id}`}
+                          className="text-brand underline underline-offset-4"
+                        >
+                          {customer.name}
+                        </Link>
+                      </td>
                       <td className="px-6 py-3 text-muted">{customer.phone}</td>
                       <td className="px-6 py-3">{customer.address}</td>
                       <td className="tabular px-6 py-3">{customer.invoiceCount}</td>

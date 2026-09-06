@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -106,6 +107,214 @@ const main = async () => {
     });
 
     console.log('[seed] company settings ready');
+
+    const products = await prisma.product.findMany();
+    const byName = new Map(products.map((product) => [product.name, product]));
+
+    const sampleClients = [
+      {
+        name: 'Mrs Adeyemi',
+        phone: '08031234567',
+        address: '12 Adebayo Street, GRA, Ado-Ekiti',
+      },
+      {
+        name: 'Mr Tunde Ojo',
+        phone: '08039876543',
+        address: 'Iworoko Road, Ado-Ekiti',
+      },
+      {
+        name: 'Funke Homes Ltd',
+        phone: '08123456789',
+        address: 'New Iyin Road, Ado-Ekiti',
+      },
+    ];
+
+    const clients = [];
+
+    for (const client of sampleClients) {
+      const existing = await prisma.customer.findFirst({
+        where: { phone: client.phone },
+      });
+
+      clients.push(
+        existing ??
+          (await prisma.customer.create({
+            data: client,
+          })),
+      );
+    }
+
+    console.log(`[seed] sample clients ready: ${clients.length}`);
+
+    const year = new Date().getFullYear();
+    const existingQuotes = await prisma.quotation.count();
+
+    if (existingQuotes === 0) {
+      const zebra = byName.get('Zebra Blind');
+      const curtain = byName.get('Curtain');
+      const rod = byName.get('Curtain Rod');
+      const install = byName.get('Installation');
+      const roller = byName.get('Roller Blind');
+
+      if (!zebra || !curtain || !rod || !install || !roller) {
+        throw new Error('Catalogue products missing; cannot seed quotations');
+      }
+
+      const nextQt = async () => {
+        const key = `QT-${year}`;
+        const row = await prisma.numberSequence.upsert({
+          where: { key },
+          create: { key, value: 1 },
+          update: { value: { increment: 1 } },
+        });
+        return `${key}-${String(row.value).padStart(6, '0')}`;
+      };
+
+      const token = () => randomBytes(24).toString('base64url');
+
+      // Open quote — living room blinds
+      const area1 = 2.4;
+      const line1 = Math.round(area1 * zebra.unitPrice);
+      const line2 = rod.unitPrice * 2;
+      const line3 = install.unitPrice;
+      const sub1 = line1 + line2 + line3;
+
+      await prisma.quotation.create({
+        data: {
+          number: await nextQt(),
+          customerId: clients[0]!.id,
+          createdById: admin.id,
+          discount: 5_000,
+          subtotal: sub1,
+          total: sub1 - 5_000,
+          status: 'OPEN',
+          publicToken: token(),
+          items: {
+            create: [
+              {
+                productId: zebra.id,
+                nameSnapshot: zebra.name,
+                pricingType: zebra.pricingType,
+                width: 1.2,
+                height: 2.0,
+                area: area1,
+                quantity: area1,
+                unitPrice: zebra.unitPrice,
+                lineTotal: line1,
+              },
+              {
+                productId: rod.id,
+                nameSnapshot: rod.name,
+                pricingType: rod.pricingType,
+                quantity: 2,
+                unitPrice: rod.unitPrice,
+                lineTotal: line2,
+              },
+              {
+                productId: install.id,
+                nameSnapshot: install.name,
+                pricingType: install.pricingType,
+                quantity: 1,
+                unitPrice: install.unitPrice,
+                lineTotal: line3,
+              },
+            ],
+          },
+        },
+      });
+
+      // Open quote — office rollers
+      const area2 = 3.0;
+      const officeTotal = Math.round(area2 * roller.unitPrice) + install.unitPrice;
+
+      await prisma.quotation.create({
+        data: {
+          number: await nextQt(),
+          customerId: clients[1]!.id,
+          createdById: admin.id,
+          discount: 0,
+          subtotal: officeTotal,
+          total: officeTotal,
+          status: 'OPEN',
+          publicToken: token(),
+          items: {
+            create: [
+              {
+                productId: roller.id,
+                nameSnapshot: roller.name,
+                pricingType: roller.pricingType,
+                width: 1.5,
+                height: 2.0,
+                area: area2,
+                quantity: area2,
+                unitPrice: roller.unitPrice,
+                lineTotal: Math.round(area2 * roller.unitPrice),
+              },
+              {
+                productId: install.id,
+                nameSnapshot: install.name,
+                pricingType: install.pricingType,
+                quantity: 1,
+                unitPrice: install.unitPrice,
+                lineTotal: install.unitPrice,
+              },
+            ],
+          },
+        },
+      });
+
+      // Curtains quote
+      const area3 = 4.0;
+      const curtainTotal = Math.round(area3 * curtain.unitPrice) + rod.unitPrice + install.unitPrice;
+
+      await prisma.quotation.create({
+        data: {
+          number: await nextQt(),
+          customerId: clients[2]!.id,
+          createdById: admin.id,
+          discount: 10_000,
+          subtotal: curtainTotal,
+          total: curtainTotal - 10_000,
+          status: 'OPEN',
+          publicToken: token(),
+          items: {
+            create: [
+              {
+                productId: curtain.id,
+                nameSnapshot: curtain.name,
+                pricingType: curtain.pricingType,
+                width: 2.0,
+                height: 2.0,
+                area: area3,
+                quantity: area3,
+                unitPrice: curtain.unitPrice,
+                lineTotal: Math.round(area3 * curtain.unitPrice),
+              },
+              {
+                productId: rod.id,
+                nameSnapshot: rod.name,
+                pricingType: rod.pricingType,
+                quantity: 1,
+                unitPrice: rod.unitPrice,
+                lineTotal: rod.unitPrice,
+              },
+              {
+                productId: install.id,
+                nameSnapshot: install.name,
+                pricingType: install.pricingType,
+                quantity: 1,
+                unitPrice: install.unitPrice,
+                lineTotal: install.unitPrice,
+              },
+            ],
+          },
+        },
+      });
+
+      console.log('[seed] sample quotations ready: 3');
+    } else {
+      console.log(`[seed] quotations already present (${existingQuotes}), skipped sample quotes`);
+    }
   } finally {
     await prisma.$disconnect();
   }

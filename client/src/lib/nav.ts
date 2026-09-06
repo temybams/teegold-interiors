@@ -4,6 +4,7 @@ import {
   CatalogueIcon,
   ClientsIcon,
   InvoicesIcon,
+  JobsIcon,
   OverviewIcon,
   QuotationsIcon,
   ReportsIcon,
@@ -24,7 +25,8 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard', ready: true, icon: OverviewIcon },
   { label: 'Invoices', href: '/invoices', ready: true, icon: InvoicesIcon },
-  { label: 'Quotations', href: '/quotations', ready: false, icon: QuotationsIcon },
+  { label: 'Quotations', href: '/quotations', ready: true, icon: QuotationsIcon },
+  { label: 'Jobs', href: '/jobs', ready: true, icon: JobsIcon },
   { label: 'Clients', href: '/clients', ready: true, icon: ClientsIcon },
   { label: 'Catalogue', href: '/catalogue', ready: true, adminOnly: true, icon: CatalogueIcon },
   { label: 'Reports', href: '/reports', ready: true, icon: ReportsIcon },

@@ -114,8 +114,19 @@ export const apiDownload = async (path: string, filename: string): Promise<void>
 export const downloadPublicPdf = async (
   token: string,
   filename: string,
-  variant: 'invoice' | 'receipt' = 'invoice',
+  variant: 'invoice' | 'receipt' | 'quotation' = 'invoice',
 ): Promise<void> => {
+  if (variant === 'quotation') {
+    const response = await fetch(`${apiBaseUrl}/api/public/quotations/${token}/pdf`);
+
+    if (!response.ok) {
+      throw apiRequestError(response.status, 'Could not download the quotation', 'DOWNLOAD_FAILED', []);
+    }
+
+    triggerDownload(await response.blob(), filename);
+    return;
+  }
+
   const query = variant === 'receipt' ? '?variant=receipt' : '';
   const response = await fetch(`${apiBaseUrl}/api/public/invoices/${token}/pdf${query}`);
 

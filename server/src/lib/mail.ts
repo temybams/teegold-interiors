@@ -104,9 +104,8 @@ export const invoiceEmail = (input: {
   totalLabel: string;
   url: string;
 }) => {
-  const first = input.customerName.split(/\s+/)[0] ?? input.customerName;
   const text = [
-    `Hello ${first},`,
+    `Hello ${input.customerName},`,
     '',
     `Please find your Teegold Interiors invoice ${input.number}. Total: ${input.totalLabel}.`,
     'A PDF is attached. You can also open it here:',
@@ -119,7 +118,7 @@ export const invoiceEmail = (input: {
   return {
     subject: `Teegold Interiors invoice ${input.number}`,
     text,
-    html: `<p>Hello ${first},</p>
+    html: `<p>Hello ${input.customerName},</p>
 <p>Please find your Teegold Interiors invoice ${input.number}. Total: ${input.totalLabel}.</p>
 <p>A PDF is attached. You can also <a href="${input.url}">open it here</a>.</p>
 <p>Teegold Interiors</p>`,

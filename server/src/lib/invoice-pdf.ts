@@ -20,9 +20,13 @@ const measurement = (item: PublicInvoice['items'][number]): string =>
 const quantity = (item: PublicInvoice['items'][number]): string =>
   item.pricingType === 'PER_M2' ? `${item.quantity.toFixed(2)} m2` : String(item.quantity);
 
-const statusLabel = (invoice: PublicInvoice): string => {
+const statusLabel = (invoice: PublicInvoice, variant: PdfVariant): string => {
   if (invoice.cancelledAt) {
     return 'Cancelled';
+  }
+
+  if (variant === 'quotation') {
+    return 'Open';
   }
 
   if (invoice.paymentStatus === 'PAID') {
@@ -39,10 +43,10 @@ const statusLabel = (invoice: PublicInvoice): string => {
 const dateLabel = (value: Date): string =>
   value.toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' });
 
-export type PdfVariant = 'invoice' | 'receipt';
+export type PdfVariant = 'invoice' | 'receipt' | 'quotation';
 
 /**
- * A typeset A4 invoice or receipt — not a screenshot of the admin form.
+ * A typeset A4 invoice, receipt or quotation — not a screenshot of the admin form.
  * Standard PDF fonts cannot draw ₦, so amounts use NGN.
  */
 export const buildInvoicePdf = async (
@@ -51,9 +55,11 @@ export const buildInvoicePdf = async (
   companyOverride?: PublicCompany,
 ): Promise<Buffer> => {
   const company = companyOverride ?? (await getCompanySettings());
-  const isReceipt = variant === 'receipt' || invoice.paymentStatus === 'PAID';
-  const showBank = !isReceipt && !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
-  const title = isReceipt ? 'RECEIPT' : 'INVOICE';
+  const isQuotation = variant === 'quotation';
+  const isReceipt = !isQuotation && (variant === 'receipt' || invoice.paymentStatus === 'PAID');
+  const showBank = !isQuotation && !isReceipt && !invoice.cancelledAt && invoice.paymentStatus !== 'PAID';
+  const title = isQuotation ? 'QUOTATION' : isReceipt ? 'RECEIPT' : 'INVOICE';
+  const showPaidBalance = !isQuotation && !isReceipt && (invoice.amountPaid > 0 || invoice.balance > 0);
 
   const doc = await PDFDocument.create();
   const page = doc.addPage([595.28, 841.89]);
@@ -90,7 +96,7 @@ export const buildInvoicePdf = async (
   text(`${company.address}  ·  ${company.phone}`, left, y, 9, sans, muted);
 
   text(title, right - sansBold.widthOfTextAtSize(title, 16), height - 56, 16, sansBold);
-  const status = statusLabel(invoice).toUpperCase();
+  const status = statusLabel(invoice, variant).toUpperCase();
   text(
     status,
     right - sans.widthOfTextAtSize(status, 9),
@@ -178,13 +184,18 @@ export const buildInvoicePdf = async (
     true,
   );
 
-  if (!isReceipt && (invoice.amountPaid > 0 || invoice.balance > 0)) {
+  if (showPaidBalance) {
     row('Paid', naira(invoice.amountPaid));
     row('Balance', naira(invoice.balance));
   }
 
   if (isReceipt) {
     text('Payment received in full.', left + 280, y, 9, sans, paid);
+    y -= 16;
+  }
+
+  if (isQuotation) {
+    text('This quotation is valid for 14 days.', left + 280, y, 9, sans, muted);
     y -= 16;
   }
 
@@ -208,7 +219,18 @@ export const buildInvoicePdf = async (
     thickness: 0.3,
     color: hairline,
   });
-  text(isReceipt ? 'Thank you for your payment.' : 'Thank you for your custom.', left, y, 9, sans, muted);
+  text(
+    isQuotation
+      ? 'Thank you for considering Teegold Interiors.'
+      : isReceipt
+        ? 'Thank you for your payment.'
+        : 'Thank you for your custom.',
+    left,
+    y,
+    9,
+    sans,
+    muted,
+  );
   text(`${company.email}  ·  ${company.phone}`, left, y - 13, 8, sans, muted);
 
   return Buffer.from(await doc.save());
