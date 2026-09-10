@@ -1,0 +1,5 @@
+{
+  "installCommand": "yarn --cwd ../shared install && yarn --cwd ../shared build && yarn install --production=false",
+  "buildCommand": "yarn build",
+  "framework": "nextjs"
+}

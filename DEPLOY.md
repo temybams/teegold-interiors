@@ -41,11 +41,26 @@ Then set these env vars on **teegold-api** (Blueprint marks them as fill-in):
 
 `DATABASE_URL` and `JWT_SECRET` are filled by the blueprint.
 
-After the first successful deploy, open **Shell** on the API service and seed the admin once:
+After the first successful deploy, seed the admin **once**. Free Render has no Shell, so run it from your laptop against the production database:
+
+1. Render → **teegold-db** → copy the **External Database URL**
+2. On the API service, set `SEED_ADMIN_NAME`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`
+3. From your machine:
 
 ```bash
+cd server
+DATABASE_URL='postgresql://…external-url-from-render…' \
+SEED_ADMIN_NAME='Your Name' \
+SEED_ADMIN_EMAIL='you@example.com' \
+SEED_ADMIN_PASSWORD='your-password-here' \
 yarn db:seed
 ```
+
+You should see `[seed] admin ready: you@example.com`. Then log in on Vercel with that email/password.
+
+**Alternative (no laptop):** temporarily set the API **Start Command** to  
+`yarn prisma migrate deploy && yarn db:seed && node dist/index.js`,  
+redeploy once, confirm login works, then change Start Command back to `yarn start:prod` and redeploy.
 
 Health check: `https://YOUR-API.onrender.com/api/health` should return `{ "status": "ok", … }`.
 
@@ -70,7 +85,9 @@ yarn --cwd ../shared install && yarn --cwd ../shared build && yarn install --pro
 | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `https://YOUR-API.onrender.com` (no trailing slash) |
 
-Deploy. Note the Vercel URL, then go back to Render and set `CLIENT_ORIGIN` to that exact URL (or your custom domain). Redeploy the API so CORS picks it up.
+The client proxies `/api/*` through Vercel to that URL so login cookies stay first-party (phones block cookies from Render when the site is on Vercel).
+
+Deploy. Note the Vercel URL, then go back to Render and set `CLIENT_ORIGIN` to that exact URL (or your custom domain). Redeploy the API.
 
 ## 3. First business checklist
 

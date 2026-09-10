@@ -1,4 +1,12 @@
-export const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+/**
+ * In the browser, call same-origin `/api/...` (Next rewrites to Render). That keeps
+ * session cookies first-party — required on phones, which block cross-site cookies.
+ * On the server, talk to the API origin directly.
+ */
+export const apiBaseUrl =
+  typeof window === 'undefined'
+    ? (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/$/, '')
+    : '';
 
 export type ApiIssue = {
   field: string;

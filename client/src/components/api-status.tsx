@@ -44,7 +44,7 @@ export const ApiStatus = () => {
         <div>
           <p className="text-xs tracking-[0.12em] text-muted uppercase">Server connection</p>
           <p className="mt-1 break-all font-mono text-xs text-ink sm:text-sm">
-            {apiBaseUrl}/api/health
+            {apiBaseUrl ? `${apiBaseUrl}/api/health` : '/api/health'}
           </p>
         </div>
 
