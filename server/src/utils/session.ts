@@ -9,8 +9,10 @@ const REFRESH_PATH = '/api/auth';
 
 const baseCookie = (): CookieOptions => ({
   httpOnly: true,
+  // Production traffic is same-site via the Vercel `/api` rewrite, so Lax is enough
+  // (and works on phones). Secure is still required on HTTPS.
   secure: isProduction,
-  sameSite: isProduction ? 'none' : 'lax',
+  sameSite: 'lax',
   path: '/',
 });
 
