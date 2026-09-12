@@ -11,8 +11,10 @@ type InvoicePaymentProps = {
   onSaved: (invoice: Invoice) => void;
 };
 
+const digitsOnly = (value: string): string => value.replace(/[^\d]/g, '');
+
 const parseAmount = (value: string): number | null => {
-  const cleaned = value.replace(/[^\d]/g, '');
+  const cleaned = digitsOnly(value);
   if (!cleaned) {
     return null;
   }
@@ -50,7 +52,7 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
     }
 
     if (rounded > balance) {
-      setError(`Payment cannot exceed the balance of ${formatNaira(balance)}.`);
+      setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
       return;
     }
 
@@ -80,6 +82,12 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
       return;
     }
 
+    if (payment > balance) {
+      setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
+      setAmount(String(balance));
+      return;
+    }
+
     void save(payment);
   };
 
@@ -106,12 +114,26 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
         <label className="block max-w-xs">
           <span className="text-sm font-medium">This payment</span>
           <span className="mt-0.5 block text-xs text-muted">
-            How much is being paid now — not the running total. Max {formatNaira(balance)}.
+            How much is being paid now. Maximum {formatNaira(balance)}.
           </span>
           <input
             value={amount}
             onChange={(event) => {
-              setAmount(event.target.value.replace(/[^\d]/g, ''));
+              const raw = digitsOnly(event.target.value);
+              if (!raw) {
+                setAmount('');
+                setError(null);
+                return;
+              }
+
+              const next = Number(raw);
+              if (next > balance) {
+                setAmount(String(balance));
+                setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
+                return;
+              }
+
+              setAmount(raw);
               setError(null);
             }}
             inputMode="numeric"
@@ -126,7 +148,7 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
 
         {exceedsBalance && (
           <p className="text-sm text-cancelled">
-            That is more than the balance of {formatNaira(balance)}.
+            You cannot pay more than the balance of {formatNaira(balance)}.
           </p>
         )}
 
