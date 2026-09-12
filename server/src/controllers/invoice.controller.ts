@@ -9,11 +9,13 @@ import {
   getInvoice,
   getInvoiceByToken,
   listInvoices,
+  listInvoicesForExport,
   recordPayment,
   updateInvoice,
 } from '../services/invoice.service';
 import { getCompanySettings } from '../services/settings.service';
 import { asyncHandler } from '../utils/async-handler';
+import { toCsv } from '../utils/csv';
 import { formatNaira } from '../utils/money';
 import { invoiceShareText, publicInvoiceUrl } from '../utils/share';
 import type {
@@ -33,6 +35,28 @@ export const getInvoices: RequestHandler = asyncHandler(async (req, res) => {
   const query = req.query as unknown as InvoiceListQuery;
 
   res.json(await listInvoices(query));
+});
+
+export const getInvoicesCsv: RequestHandler = asyncHandler(async (req, res) => {
+  const query = req.query as unknown as InvoiceListQuery;
+  const invoices = await listInvoicesForExport(query);
+  const csv = toCsv(
+    ['Number', 'Client', 'Phone', 'Date', 'Total', 'Paid', 'Balance', 'Status'],
+    invoices.map((invoice) => [
+      invoice.number,
+      invoice.customer.name,
+      invoice.customer.phone,
+      invoice.createdAt.toISOString().slice(0, 10),
+      invoice.total,
+      invoice.amountPaid,
+      invoice.balance,
+      invoice.cancelledAt ? 'Cancelled' : invoice.paymentStatus,
+    ]),
+  );
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="invoices.csv"');
+  res.send(csv);
 });
 
 export const getInvoiceById: RequestHandler = asyncHandler(async (req, res) => {
@@ -62,9 +86,9 @@ export const patchInvoiceCancel: RequestHandler = asyncHandler(async (req, res) 
 
 export const patchInvoicePayment: RequestHandler = asyncHandler(async (req, res) => {
   const { id } = req.params as { id: string };
-  const { amountPaid } = req.body as InvoicePaymentBody;
+  const { payment } = req.body as InvoicePaymentBody;
 
-  res.json({ invoice: await recordPayment(id, amountPaid, req.user!.role) });
+  res.json({ invoice: await recordPayment(id, payment, req.user!.role) });
 });
 
 const pdfVariantFrom = (query: unknown): PdfVariant => {

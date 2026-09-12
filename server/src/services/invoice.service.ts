@@ -10,6 +10,7 @@ import type {
 } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import { forbidden, notFound, unprocessable } from '../utils/http-error';
+import { nextInvoiceNumber } from '../utils/numbering';
 import { calculateLineTotal, calculateQuantity, calculateTotals, isMeasured } from '../utils/pricing';
 import type { InvoiceBody, InvoiceListQuery } from '../validations/invoice.validation';
 import type { JobListQuery, JobStatusBody } from '../validations/job.validation';
@@ -105,18 +106,6 @@ const toPublicSummary = (invoice: InvoiceRecord): PublicInvoiceSummary => {
   const full = toPublicInvoice(invoice);
   const { items: _items, ...summary } = full;
   return summary;
-};
-
-const nextInvoiceNumber = async (tx: Prisma.TransactionClient): Promise<string> => {
-  const year = new Date().getFullYear();
-  const key = `INV-${year}`;
-  const row = await tx.numberSequence.upsert({
-    where: { key },
-    create: { key, value: 1 },
-    update: { value: { increment: 1 } },
-  });
-
-  return `${key}-${String(row.value).padStart(6, '0')}`;
 };
 
 type BuiltItem = {
@@ -242,23 +231,44 @@ const assertEditable = (invoice: Invoice, role: 'ADMIN' | 'STAFF'): void => {
 const listWhere = (query: InvoiceListQuery): Prisma.InvoiceWhereInput => {
   const search = query.q?.trim();
   const status = query.status ?? 'all';
+  const filters: Prisma.InvoiceWhereInput[] = [];
 
-  return {
-    ...(search
-      ? {
-          OR: [
-            { number: { contains: search, mode: 'insensitive' } },
-            { customer: { name: { contains: search, mode: 'insensitive' } } },
-            { customer: { phone: { contains: search.replace(/\s/g, '') } } },
-          ],
-        }
-      : {}),
-    ...(status === 'paid' ? { cancelledAt: null, paymentStatus: 'PAID' } : {}),
-    ...(status === 'pending'
-      ? { cancelledAt: null, paymentStatus: { in: ['UNPAID', 'PARTIAL'] } }
-      : {}),
-    ...(status === 'cancelled' ? { cancelledAt: { not: null } } : {}),
-  };
+  if (search) {
+    filters.push({
+      OR: [
+        { number: { contains: search, mode: 'insensitive' } },
+        { customer: { name: { contains: search, mode: 'insensitive' } } },
+        { customer: { phone: { contains: search.replace(/\s/g, '') } } },
+      ],
+    });
+  }
+
+  if (status === 'paid') {
+    filters.push({ cancelledAt: null, paymentStatus: 'PAID' });
+  } else if (status === 'pending') {
+    filters.push({ cancelledAt: null, paymentStatus: { in: ['UNPAID', 'PARTIAL'] } });
+  } else if (status === 'cancelled') {
+    filters.push({ cancelledAt: { not: null } });
+  }
+
+  if (query.from || query.to) {
+    filters.push({
+      createdAt: {
+        ...(query.from ? { gte: query.from } : {}),
+        ...(query.to
+          ? {
+              lte: (() => {
+                const end = new Date(query.to);
+                end.setHours(23, 59, 59, 999);
+                return end;
+              })(),
+            }
+          : {}),
+      },
+    });
+  }
+
+  return filters.length > 0 ? { AND: filters } : {};
 };
 
 export type InvoiceCounts = {
@@ -307,6 +317,18 @@ export const listInvoices = async (
     total,
     counts,
   };
+};
+
+export const listInvoicesForExport = async (query: InvoiceListQuery): Promise<PublicInvoiceSummary[]> => {
+  const where = listWhere(query);
+  const invoices = await prisma.invoice.findMany({
+    where,
+    include: invoiceInclude,
+    orderBy: { createdAt: 'desc' },
+    take: 5000,
+  });
+
+  return invoices.map((invoice) => toPublicSummary(invoice as InvoiceRecord));
 };
 
 export const getInvoice = async (id: string): Promise<PublicInvoice> => {
@@ -419,7 +441,7 @@ export const updateInvoice = async (
 
 export const recordPayment = async (
   id: string,
-  amountPaid: number,
+  payment: number,
   role: 'ADMIN' | 'STAFF',
 ): Promise<PublicInvoice> => {
   const current = await prisma.invoice.findUnique({ where: { id } });
@@ -430,7 +452,18 @@ export const recordPayment = async (
 
   assertEditable(current, role);
 
-  const settlement = settleAmount(current.total, amountPaid);
+  if (current.balance <= 0) {
+    throw unprocessable('This invoice is already paid in full');
+  }
+
+  if (payment > current.balance) {
+    throw unprocessable(
+      `Payment cannot exceed the balance of ${current.balance.toLocaleString('en-NG')} Naira`,
+      [{ field: 'payment', message: 'Cannot exceed the remaining balance' }],
+    );
+  }
+
+  const settlement = settleAmount(current.total, current.amountPaid + payment);
   const invoice = await prisma.invoice.update({
     where: { id },
     data: settlement,
