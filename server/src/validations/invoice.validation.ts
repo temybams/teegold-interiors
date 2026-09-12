@@ -60,6 +60,8 @@ export type InvoiceListFilter = (typeof INVOICE_LIST_FILTERS)[number];
 export const invoiceListQuerySchema = z.object({
   q: z.string().trim().optional(),
   status: z.enum(INVOICE_LIST_FILTERS).optional().default('all'),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(50).optional().default(10),
 });
@@ -77,10 +79,11 @@ export const invoiceEmailBodySchema = z.object({
 export type InvoiceEmailBody = z.infer<typeof invoiceEmailBodySchema>;
 
 export const invoicePaymentBodySchema = z.object({
-  amountPaid: z.coerce
+  /** This payment only — added to what is already paid. Cannot exceed the balance. */
+  payment: z.coerce
     .number({ invalid_type_error: 'Enter how much was paid' })
     .int('Use whole Naira')
-    .nonnegative('Cannot be negative')
+    .positive('Enter an amount greater than zero')
     .max(100_000_000, 'That amount looks wrong'),
 });
 
