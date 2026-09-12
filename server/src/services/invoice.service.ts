@@ -189,7 +189,16 @@ const buildItems = async (
 };
 
 const settleAmount = (total: number, amountPaid: number) => {
-  const paid = Math.min(Math.max(Math.round(amountPaid), 0), total);
+  const paid = Math.round(amountPaid);
+  if (paid < 0) {
+    throw unprocessable('Amount paid cannot be negative');
+  }
+  if (paid > total) {
+    throw unprocessable(
+      `Amount paid cannot exceed the invoice total of ${total.toLocaleString('en-NG')} Naira`,
+      [{ field: 'payment', message: 'Cannot exceed the invoice total' }],
+    );
+  }
   const balance = total - paid;
   const paymentStatus = (paid <= 0 ? 'UNPAID' : balance <= 0 ? 'PAID' : 'PARTIAL') as PaymentStatus;
 
