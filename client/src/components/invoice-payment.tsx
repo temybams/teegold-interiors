@@ -11,10 +11,8 @@ type InvoicePaymentProps = {
   onSaved: (invoice: Invoice) => void;
 };
 
-const digitsOnly = (value: string): string => value.replace(/[^\d]/g, '');
-
 const parseAmount = (value: string): number | null => {
-  const cleaned = digitsOnly(value);
+  const cleaned = value.replace(/[^\d]/g, '');
   if (!cleaned) {
     return null;
   }
@@ -47,12 +45,12 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
     const rounded = Math.round(thisPayment);
 
     if (rounded <= 0) {
-      setError('Enter how much was paid this time.');
+      setError('Enter an amount greater than zero.');
       return;
     }
 
     if (rounded > balance) {
-      setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
+      setError(`You can pay any amount up to the balance (${formatNaira(balance)}), but not more.`);
       return;
     }
 
@@ -74,23 +72,6 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
     }
   };
 
-  const onSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (payment == null) {
-      setError('Enter how much was paid this time.');
-      return;
-    }
-
-    if (payment > balance) {
-      setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
-      setAmount(String(balance));
-      return;
-    }
-
-    void save(payment);
-  };
-
   return (
     <section className="rounded-card mb-6 border border-hairline bg-surface p-4 sm:p-6">
       <h2 className="text-xs tracking-widest text-muted uppercase">Record payment</h2>
@@ -101,7 +82,7 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
           <dd className="tabular mt-1 font-medium">{formatNaira(total)}</dd>
         </div>
         <div className="rounded-card border border-hairline bg-canvas px-3 py-3">
-          <dt className="text-xs tracking-wide text-muted uppercase">Paid</dt>
+          <dt className="text-xs tracking-wide text-muted uppercase">Already paid</dt>
           <dd className="tabular mt-1 font-medium">{formatNaira(paid)}</dd>
         </div>
         <div className="rounded-card border border-brand/20 bg-lilac/60 px-3 py-3">
@@ -110,36 +91,30 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
         </div>
       </dl>
 
-      <form onSubmit={onSubmit} className="mt-5 space-y-3">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (payment == null) {
+            setError('Enter how much is being paid now.');
+            return;
+          }
+          void save(payment);
+        }}
+        className="mt-5 space-y-3"
+      >
         <label className="block max-w-xs">
-          <span className="text-sm font-medium">This payment</span>
+          <span className="text-sm font-medium">Payment amount</span>
           <span className="mt-0.5 block text-xs text-muted">
-            How much is being paid now. Maximum {formatNaira(balance)}.
+            Enter any amount from ₦1 up to the balance ({formatNaira(balance)}).
           </span>
           <input
             value={amount}
             onChange={(event) => {
-              const raw = digitsOnly(event.target.value);
-              if (!raw) {
-                setAmount('');
-                setError(null);
-                return;
-              }
-
-              const next = Number(raw);
-              if (next > balance) {
-                setAmount(String(balance));
-                setError(`You cannot pay more than the balance of ${formatNaira(balance)}.`);
-                return;
-              }
-
-              setAmount(raw);
+              setAmount(event.target.value.replace(/[^\d]/g, ''));
               setError(null);
             }}
             inputMode="numeric"
-            placeholder="0"
-            max={balance}
-            aria-invalid={exceedsBalance}
+            placeholder="e.g. 50000"
             className={`rounded-card tabular mt-2 w-full border px-3 py-2.5 text-sm outline-none focus:border-brand ${
               exceedsBalance ? 'border-cancelled' : 'border-hairline'
             }`}
@@ -148,7 +123,7 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
 
         {exceedsBalance && (
           <p className="text-sm text-cancelled">
-            You cannot pay more than the balance of {formatNaira(balance)}.
+            That is more than the balance. You can pay up to {formatNaira(balance)}.
           </p>
         )}
 
@@ -166,7 +141,7 @@ export const InvoicePayment = ({ invoice, onSaved }: InvoicePaymentProps) => {
             onClick={() => void save(balance)}
             className="rounded-card border border-hairline px-4 py-2.5 text-sm hover:bg-canvas disabled:opacity-60"
           >
-            {saving ? 'Saving…' : `Pay remaining ${formatNaira(balance)}`}
+            {saving ? 'Saving…' : 'Pay full balance'}
           </button>
         </div>
       </form>
